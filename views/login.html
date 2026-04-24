@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Login - TrainTrack AI</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <nav>
+    <div class="logo">TrainTrack AI</div>
+    <div>
+      <a href="/">Home</a>
+      <a href="/passenger">Passenger</a>
+      <a href="/controller">Controller</a>
+      <a href="/contact">Contact</a>
+    </div>
+  </nav>
+
+  <div class="auth-box">
+    <h2>Welcome Back</h2>
+    <div class="tab-switch">
+      <button class="active" onclick="showTab('login', this)">Login</button>
+      <button onclick="showTab('register', this)">Register</button>
+    </div>
+
+    <div id="login">
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" placeholder="you@example.com">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" placeholder="••••••••">
+      </div>
+      <button class="btn btn-primary" style="width:100%">Login</button>
+    </div>
+
+    <div id="register" style="display:none">
+      <div class="form-group">
+        <label>Full Name</label>
+        <input type="text" placeholder="John Doe">
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" placeholder="you@example.com">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" placeholder="••••••••">
+      </div>
+      <div class="form-group">
+        <label>Role</label>
+        <select>
+          <option>Passenger</option>
+          <option>Controller</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" style="width:100%">Register</button>
+    </div>
+  </div>
+
+  <script>
+    function showTab(tab, btn) {
+      document.getElementById('login').style.display = tab === 'login' ? 'block' : 'none';
+      document.getElementById('register').style.display = tab === 'register' ? 'block' : 'none';
+      document.querySelectorAll('.tab-switch button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Panel - TrainTrack AI</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <nav>
+    <div class="logo">TrainTrack AI</div>
+    <div>
+      <a href="/">Home</a>
+      <a href="/passenger">Passenger</a>
+      <a href="/controller">Controller</a>
+      <a href="/admin" style="color:#3b82f6">Admin</a>
+      <a href="/contact">Contact</a>
+    </div>
+  </nav>
+
+  <div class="dashboard">
+    <h2>Admin Panel</h2>
+
+    <div class="grid">
+      <div class="stat-card"><h4>Total Users</h4><div class="number" id="totalUsers">--</div></div>
+      <div class="stat-card"><h4>Admins</h4><div class="number" id="adminCount">--</div></div>
+      <div class="stat-card"><h4>Controllers</h4><div class="number" id="controllerCount">--</div></div>
+      <div class="stat-card"><h4>Passengers</h4><div class="number" id="passengerCount">--</div></div>
+    </div>
+
+    <!-- Add User -->
+    <div class="section">
+      <h3>Add New User</h3>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px">
+        <div class="form-group"><label>Full Name</label><input type="text" id="newName" placeholder="e.g. John Doe"></div>
+        <div class="form-group"><label>Email</label><input type="email" id="newEmail" placeholder="john@example.com"></div>
+        <div class="form-group"><label>Role</label>
+          <select id="newRole">
+            <option value="passenger">Passenger</option>
+            <option value="controller">Controller</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="addUser()">Add User</button>
+      <div id="addMsg" style="margin-top:10px; color:#22c55e; display:none">User added successfully!</div>
+      <div id="addErr" style="margin-top:10px; color:#ef4444; display:none"></div>
+    </div>
+
+    <!-- Users Table -->
+    <div class="section">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:15px;">
+        <h3 style="margin:0">Manage Users</h3>
+        <button class="btn btn-secondary" style="padding:6px 14px;font-size:13px" onclick="exportUsersCSV()">Export CSV</button>
+      </div>
+      <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:15px;">
+        <input type="text" id="searchUser" placeholder="Search name or email..." oninput="loadUsers()" style="padding:8px 12px; background:#0f172a; border:1px solid #334155; border-radius:8px; color:#f1f5f9; font-size:14px; flex:1; min-width:180px;">
+        <select id="filterRole" onchange="loadUsers()" style="padding:8px 12px; background:#0f172a; border:1px solid #334155; border-radius:8px; color:#f1f5f9; font-size:14px;">
+          <option value="">All Roles</option>
+          <option value="passenger">Passenger</option>
+          <option value="controller">Controller</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+      <table>
+        <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody id="userBody"><tr><td colspan="5" style="text-align:center;color:#94a3b8">Loading...</td></tr></tbody>
+      </table>
+      <p id="noUsers" style="color:#94a3b8; text-align:center; padding:20px; display:none;">No users found.</p>
+    </div>
+  </div>
+
+  <footer>© 2026 TrainTrack AI. All rights reserved.</footer>
+
+  <script>
+    let allUsers = [];
+
+    async function loadUsers() {
+      const search = document.getElementById('searchUser').value;
+      const role   = document.getElementById('filterRole').value;
+      const params = new URLSearchParams();
+      if (search) params.append('search', search);
+      if (role)   params.append('role', role);
+
+      const res = await fetch('/api/admin/users?' + params);
+      allUsers = await res.json();
+
+      // Update stats
+      document.getElementById('totalUsers').textContent      = allUsers.length;
+      document.getElementById('adminCount').textContent      = allUsers.filter(u => u.role === 'admin').length;
+      document.getElementById('controllerCount').textContent = allUsers.filter(u => u.role === 'controller').length;
+      document.getElementById('passengerCount').textContent  = allUsers.filter(u => u.role === 'passenger').length;
+
+      const tbody = document.getElementById('userBody');
+      const noUsers = document.getElementById('noUsers');
+      if (!allUsers.length) {
+        tbody.innerHTML = '';
+        noUsers.style.display = 'block';
+        return;
+      }
+      noUsers.style.display = 'none';
+
+      const roleColors = { admin: 'badge-red', controller: 'badge-yellow', passenger: 'badge-green' };
+      tbody.innerHTML = allUsers.map(u => `
+        <tr>
+          <td>${u.name}</td>
+          <td style="color:#94a3b8">${u.email}</td>
+          <td>
+            <select onchange="changeRole('${u._id}', this.value)" style="padding:4px 8px; background:#0f172a; border:1px solid #334155; border-radius:6px; color:#f1f5f9; font-size:13px;">
+              <option value="passenger" ${u.role === 'passenger' ? 'selected' : ''}>Passenger</option>
+              <option value="controller" ${u.role === 'controller' ? 'selected' : ''}>Controller</option>
+              <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>Admin</option>
+            </select>
+          </td>
+          <td>
+            <span class="badge ${u.active ? 'badge-green' : 'badge-red'}">${u.active ? 'Active' : 'Inactive'}</span>
+          </td>
+          <td style="display:flex; gap:8px">
+            <button class="btn btn-secondary" style="padding:4px 10px;font-size:12px" onclick="toggleActive('${u._id}', ${u.active})">
+              ${u.active ? 'Deactivate' : 'Activate'}
+            </button>
+            <button class="btn" style="padding:4px 10px;font-size:12px;background:#7f1d1d;color:#fca5a5" onclick="deleteUser('${u._id}', this)">
+              Delete
+            </button>
+          </td>
+        </tr>`).join('');
+    }
+
+    async function addUser() {
+      const name  = document.getElementById('newName').value.trim();
+      const email = document.getElementById('newEmail').value.trim();
+      const role  = document.getElementById('newRole').value;
+      const errEl = document.getElementById('addErr');
+      const msgEl = document.getElementById('addMsg');
+      errEl.style.display = 'none';
+
+      if (!name || !email) { errEl.textContent = 'Name and email are required.'; errEl.style.display = 'block'; return; }
+
+      const res = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, role })
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        errEl.textContent = err.error || 'Failed to add user.';
+        errEl.style.display = 'block';
+        return;
+      }
+      document.getElementById('newName').value = '';
+      document.getElementById('newEmail').value = '';
+      msgEl.style.display = 'block';
+      setTimeout(() => msgEl.style.display = 'none', 3000);
+      loadUsers();
+    }
+
+    async function changeRole(id, role) {
+      await fetch('/api/admin/users/' + id, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ role }) });
+      loadUsers();
+    }
+
+    async function toggleActive(id, current) {
+      await fetch('/api/admin/users/' + id, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ active: !current }) });
+      loadUsers();
+    }
+
+    async function deleteUser(id, btn) {
+      if (!confirm('Delete this user? This cannot be undone.')) return;
+      btn.textContent = 'Deleting...';
+      btn.disabled = true;
+      await fetch('/api/admin/users/' + id, { method: 'DELETE' });
+      loadUsers();
+    }
+
+    function exportUsersCSV() {
+      let csv = 'Name,Email,Role,Status\n';
+      allUsers.forEach(u => csv += `${u.name},${u.email},${u.role},${u.active ? 'Active' : 'Inactive'}\n`);
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+      a.download = 'users.csv';
+      a.click();
+    }
+
+    loadUsers();
+  </script>
+</body>
+</html>

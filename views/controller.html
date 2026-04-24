@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Controller Dashboard - TrainTrack AI</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+  <nav>
+    <div class="logo">TrainTrack AI</div>
+    <div>
+      <a href="/">Home</a>
+      <a href="/passenger">Passenger</a>
+      <a href="/controller">Controller</a>
+      <a href="/admin">Admin</a>
+      <a href="/contact">Contact</a>
+    </div>
+  </nav>
+
+  <!-- Real-time alert banner -->
+  <div id="liveAlert" style="display:none; padding:12px 20px; background:#7f1d1d; color:#fca5a5; font-weight:bold; text-align:center; border-bottom:2px solid #ef4444;">
+    🚨 <span id="liveAlertMsg"></span>
+  </div>
+
+  <div class="dashboard">
+    <h2>Controller Dashboard</h2>
+
+    <div class="grid">
+      <div class="stat-card"><h4>Total Trains</h4><div class="number" id="totalTrains">--</div></div>
+      <div class="stat-card"><h4>Active Disruptions</h4><div class="number" style="color:#ef4444" id="activeCount">--</div></div>
+      <div class="stat-card"><h4>Reroutes Active</h4><div class="number" style="color:#f59e0b">2</div></div>
+      <div class="stat-card"><h4>On-Time Rate</h4><div class="number" style="color:#22c55e" id="onTimeRate">--%</div></div>
+    </div>
+
+    <!-- On-Time Chart -->
+    <div class="section">
+      <h3>On-Time Performance (Last 7 Days)</h3>
+      <canvas id="onTimeChart" height="90"></canvas>
+    </div>
+
+    <!-- Disruptions Table -->
+    <div class="section">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:15px;">
+        <h3 style="margin:0">Active Disruptions</h3>
+        <button class="btn btn-secondary" style="padding:6px 14px;font-size:13px" onclick="exportDisruptionsCSV()">Export CSV</button>
+      </div>
+      <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:15px;">
+        <input type="text" id="searchDisrupt" placeholder="Search train or cause..." oninput="loadDisruptions()" style="padding:8px 12px; background:#0f172a; border:1px solid #334155; border-radius:8px; color:#f1f5f9; font-size:14px; flex:1; min-width:160px;">
+        <select id="filterDisruptLine" onchange="loadDisruptions()" style="padding:8px 12px; background:#0f172a; border:1px solid #334155; border-radius:8px; color:#f1f5f9; font-size:14px;">
+          <option value="">All Lines</option>
+          <option>Line A</option><option>Line B</option><option>Line C</option><option>Line D</option>
+        </select>
+      </div>
+      <table>
+        <thead><tr><th>Train</th><th>Line</th><th>Cause</th><th>Delay</th><th>Severity</th><th>Action</th></tr></thead>
+        <tbody id="disruptBody"><tr><td colspan="6" style="text-align:center;color:#94a3b8">Loading...</td></tr></tbody>
+      </table>
+    </div>
+
+    <!-- Log New Disruption -->
+    <div class="section">
+      <h3>Log New Disruption</h3>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px">
+        <div class="form-group"><label>Train ID</label><input type="text" id="trainId" placeholder="e.g. TR-606"></div>
+        <div class="form-group"><label>Line</label>
+          <select id="newLine"><option>Line A</option><option>Line B</option><option>Line C</option><option>Line D</option></select>
+        </div>
+        <div class="form-group"><label>Cause</label>
+          <select id="newCause"><option>Signal Failure</option><option>Track Maintenance</option><option>Weather</option><option>Passenger Incident</option><option>Technical Fault</option></select>
+        </div>
+        <div class="form-group"><label>Delay (min)</label><input type="number" id="estDelay" placeholder="e.g. 15"></div>
+        <div class="form-group"><label>Severity</label>
+          <select id="newSeverity"><option>Critical</option><option selected>Moderate</option><option>Minor</option></select>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="logDisruption()">Log Disruption</button>
+      <div id="logMsg" style="margin-top:10px; color:#22c55e; display:none">Disruption logged and saved!</div>
+    </div>
+
+    <!-- Dispatch Schedule -->
+    <div class="section">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:15px;">
+        <h3 style="margin:0">Dispatch Schedule</h3>
+        <button class="btn btn-secondary" style="padding:6px 14px;font-size:13px" onclick="exportScheduleCSV()">Export CSV</button>
+      </div>
+      <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:15px;">
+        <input type="text" id="searchSchedule" placeholder="Search train or driver..." oninput="loadSchedules()" style="padding:8px 12px; background:#0f172a; border:1px solid #334155; border-radius:8px; color:#f1f5f9; font-size:14px; flex:1; min-width:180px;">
+        <select id="filterSchedStatus" onchange="loadSchedules()" style="padding:8px 12px; background:#0f172a; border:1px solid #334155; border-radius:8px; color:#f1f5f9; font-size:14px;">
+          <option value="">All Status</option>
+          <option>Departed</option><option>Delayed</option><option>Critical</option><option>On Track</option><option>On Time</option>
+        </select>
+      </div>
+      <table>
+        <thead><tr><th>Train</th><th>Scheduled</th><th>Actual</th><th>Destination</th><th>Driver</th><th>Status</th><th>Action</th></tr></thead>
+        <tbody id="scheduleBody"><tr><td colspan="7" style="text-align:center;color:#94a3b8">Loading...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <footer>© 2026 TrainTrack AI. All rights reserved.</footer>
+
+  <!-- Edit Schedule Modal -->
+  <div id="editModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:200; align-items:center; justify-content:center;">
+    <div style="background:#1e293b; border:1px solid #334155; border-radius:14px; padding:28px; width:420px; max-width:95vw;">
+      <h3 style="color:#f1f5f9; font-size:16px; font-weight:700; margin-bottom:20px;">Edit Schedule</h3>
+      <input type="hidden" id="editId" />
+
+      <div style="margin-bottom:12px;">
+        <label style="font-size:12px; color:#64748b; display:block; margin-bottom:4px;">Train ID</label>
+        <input id="editTrainId" type="text" readonly
+          style="width:100%; background:#0f172a; border:1px solid #334155; color:#94a3b8; padding:9px 12px; border-radius:8px; font-size:13px; box-sizing:border-box;" />
+      </div>
+
+      <div style="margin-bottom:12px;">
+        <label style="font-size:12px; color:#64748b; display:block; margin-bottom:4px;">Actual Departure</label>
+        <input id="editActualTime" type="text" placeholder="e.g. 09:15"
+          style="width:100%; background:#0f172a; border:1px solid #334155; color:#e2e8f0; padding:9px 12px; border-radius:8px; font-size:13px; box-sizing:border-box; outline:none;" />
+      </div>
+
+      <div style="margin-bottom:12px;">
+        <label style="font-size:12px; color:#64748b; display:block; margin-bottom:4px;">Scheduled Arrival</label>
+        <input id="editArrival" type="text" placeholder="e.g. 12:15"
+          style="width:100%; background:#0f172a; border:1px solid #334155; color:#e2e8f0; padding:9px 12px; border-radius:8px; font-size:13px; box-sizing:border-box; outline:none;" />
+      </div>
+
+      <div style="margin-bottom:12px;">
+        <label style="font-size:12px; color:#64748b; display:block; margin-bottom:4px;">Delay (minutes)</label>
+        <input id="editDelay" type="number" min="0"
+          style="width:100%; background:#0f172a; border:1px solid #334155; color:#e2e8f0; padding:9px 12px; border-radius:8px; font-size:13px; box-sizing:border-box; outline:none;" />
+      </div>
+
+      <div style="margin-bottom:20px;">
+        <label style="font-size:12px; color:#64748b; display:block; margin-bottom:4px;">Status</label>
+        <select id="editStatus"
+          style="width:100%; background:#0f172a; border:1px solid #334155; color:#e2e8f0; padding:9px 12px; border-radius:8px; font-size:13px; box-sizing:border-box; outline:none;">
+          <option value="On Time">On Time</option>
+          <option value="Delayed">Delayed</option>
+          <option value="Critical">Critical</option>
+          <option value="On Track">On Track</option>
+          <option value="Departed">Departed</option>
+        </select>
+      </div>
+
+      <div style="display:flex; gap:10px; justify-content:flex-end;">
+        <button onclick="closeModal()"
+          style="padding:9px 18px; background:#334155; color:#e2e8f0; border:none; border-radius:8px; font-size:13px; cursor:pointer;">Cancel</button>
+        <button onclick="saveSchedule()"
+          style="padding:9px 18px; background:#3b82f6; color:#fff; border:none; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer;">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const socket = io();
+
+    // Real-time: new disruption from any controller
+    socket.on('new-disruption', (d) => {
+      showAlert(`New disruption logged: ${d.trainId} on ${d.line} — ${d.cause} (${d.delay} min)`);
+      loadDisruptions();
+    });
+    socket.on('disruption-resolved', () => loadDisruptions());
+
+    // Real-time: schedule updated (from any controller or passenger page)
+    socket.on('scheduleUpdated', (updated) => {
+      const idx = allSchedules.findIndex(s => s._id === updated._id);
+      if (idx !== -1) allSchedules[idx] = updated;
+      loadSchedules();
+    });
+
+    function showAlert(msg) {
+      document.getElementById('liveAlertMsg').textContent = msg;
+      document.getElementById('liveAlert').style.display = 'block';
+      setTimeout(() => document.getElementById('liveAlert').style.display = 'none', 6000);
+    }
+
+    // ---- Chart ----
+    const ctx = document.getElementById('onTimeChart').getContext('2d');
+    new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+        datasets: [{ label: 'On-Time %', data: [72,75,68,80,78,82,78], borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.15)', fill: true, tension: 0.4, pointBackgroundColor: '#3b82f6' }]
+      },
+      options: {
+        plugins: { legend: { labels: { color: '#94a3b8' } } },
+        scales: {
+          x: { ticks: { color: '#94a3b8' }, grid: { color: '#1e293b' } },
+          y: { ticks: { color: '#94a3b8' }, grid: { color: '#334155' }, min: 50, max: 100 }
+        }
+      }
+    });
+
+    // ---- Disruptions ----
+    let allDisruptions = [];
+
+    async function loadDisruptions() {
+      const search = document.getElementById('searchDisrupt').value;
+      const line   = document.getElementById('filterDisruptLine').value;
+      const params = new URLSearchParams();
+      if (search) params.append('search', search);
+      if (line)   params.append('line', line);
+      params.append('status', 'Active');
+
+      const res = await fetch('/api/disruptions?' + params);
+      allDisruptions = await res.json();
+
+      document.getElementById('activeCount').textContent = allDisruptions.length;
+
+      const tbody = document.getElementById('disruptBody');
+      if (!allDisruptions.length) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#94a3b8">No active disruptions</td></tr>';
+        return;
+      }
+      tbody.innerHTML = allDisruptions.map(d => `
+        <tr>
+          <td>${d.trainId}</td><td>${d.line}</td><td>${d.cause}</td><td>${d.delay} min</td>
+          <td><span class="badge ${d.severity === 'Critical' ? 'badge-red' : 'badge-yellow'}">${d.severity}</span></td>
+          <td><button class="btn btn-secondary" style="padding:5px 12px;font-size:13px" onclick="resolveDisruption('${d._id}', this)">Resolve</button></td>
+        </tr>`).join('');
+    }
+
+    async function resolveDisruption(id, btn) {
+      btn.textContent = 'Resolving...';
+      btn.disabled = true;
+      await fetch('/api/disruptions/' + id + '/resolve', { method: 'PUT' });
+      loadDisruptions();
+    }
+
+    async function logDisruption() {
+      const trainId = document.getElementById('trainId').value.trim();
+      if (!trainId) { alert('Please enter a Train ID'); return; }
+      const body = {
+        trainId,
+        line:     document.getElementById('newLine').value,
+        cause:    document.getElementById('newCause').value,
+        delay:    parseInt(document.getElementById('estDelay').value) || 0,
+        severity: document.getElementById('newSeverity').value
+      };
+      await fetch('/api/disruptions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      document.getElementById('trainId').value = '';
+      document.getElementById('estDelay').value = '';
+      const msg = document.getElementById('logMsg');
+      msg.style.display = 'block';
+      setTimeout(() => msg.style.display = 'none', 3000);
+    }
+
+    // ---- Schedules ----
+    let allSchedules = [];
+
+    async function loadSchedules() {
+      const search = document.getElementById('searchSchedule').value;
+      const status = document.getElementById('filterSchedStatus').value;
+      const params = new URLSearchParams();
+      if (search) params.append('search', search);
+      if (status) params.append('status', status);
+
+      const res = await fetch('/api/schedules?' + params);
+      allSchedules = await res.json();
+
+      document.getElementById('totalTrains').textContent = allSchedules.length;
+      const onTime = allSchedules.filter(s => s.status === 'On Time' || s.status === 'Departed' || s.status === 'On Track').length;
+      document.getElementById('onTimeRate').textContent = allSchedules.length ? Math.round(onTime / allSchedules.length * 100) + '%' : '--%';
+
+      const tbody = document.getElementById('scheduleBody');
+      if (!allSchedules.length) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#94a3b8">No schedules found</td></tr>';
+        return;
+      }
+      const badgeMap = { 'On Time': 'badge-green', 'Departed': 'badge-green', 'On Track': 'badge-green', 'Delayed': 'badge-yellow', 'Critical': 'badge-red' };
+      tbody.innerHTML = allSchedules.map(s => `
+        <tr>
+          <td>${s.trainId}</td><td>${s.scheduledTime}</td><td>${s.actualTime}</td>
+          <td>${s.destination}</td><td>${s.driver}</td>
+          <td><span class="badge ${badgeMap[s.status] || 'badge-yellow'}">${s.status}</span></td>
+          <td><button class="btn btn-secondary" style="padding:5px 12px;font-size:13px" onclick="openEditModal('${s._id}')">Edit</button></td>
+        </tr>`).join('');
+    }
+
+    // ---- Edit Modal ----
+    function openEditModal(id) {
+      const s = allSchedules.find(x => x._id === id);
+      if (!s) return;
+      document.getElementById('editId').value         = s._id;
+      document.getElementById('editTrainId').value    = s.trainId;
+      document.getElementById('editActualTime').value = s.actualTime || '';
+      document.getElementById('editArrival').value    = s.scheduledArrival || '';
+      document.getElementById('editDelay').value      = s.delay ?? 0;
+      document.getElementById('editStatus').value     = s.status || 'On Time';
+      document.getElementById('editModal').style.display = 'flex';
+    }
+
+    function closeModal() {
+      document.getElementById('editModal').style.display = 'none';
+    }
+
+    async function saveSchedule() {
+      const id      = document.getElementById('editId').value;
+      const actual  = document.getElementById('editActualTime').value.trim();
+      const arrival = document.getElementById('editArrival').value.trim();
+      const delay   = parseInt(document.getElementById('editDelay').value) || 0;
+      const status  = document.getElementById('editStatus').value;
+
+      try {
+        const res = await fetch(`/api/schedules/${id}`, {
+          method:  'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ actualTime: actual, scheduledArrival: arrival, delay, status })
+        });
+        if (!res.ok) throw new Error('Update failed');
+        closeModal();
+        loadSchedules();
+      } catch (err) {
+        alert('Failed to save: ' + err.message);
+      }
+    }
+
+    // ---- CSV Exports ----
+    function exportDisruptionsCSV() {
+      let csv = 'Train,Line,Cause,Delay,Severity\n';
+      allDisruptions.forEach(d => csv += `${d.trainId},${d.line},${d.cause},${d.delay} min,${d.severity}\n`);
+      downloadCSV(csv, 'disruptions.csv');
+    }
+
+    function exportScheduleCSV() {
+      let csv = 'Train,Scheduled,Actual,Destination,Driver,Status\n';
+      allSchedules.forEach(s => csv += `${s.trainId},${s.scheduledTime},${s.actualTime},${s.destination},${s.driver},${s.status}\n`);
+      downloadCSV(csv, 'dispatch_schedule.csv');
+    }
+
+    function downloadCSV(csv, filename) {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+      a.download = filename;
+      a.click();
+    }
+
+    // ---- Init ----
+    loadDisruptions();
+    loadSchedules();
+  </script>
+</body>
+</html>

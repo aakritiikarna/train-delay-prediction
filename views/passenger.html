@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Passenger Dashboard - TrainTrack AI</title>
+  <link rel="stylesheet" href="/style.css"/>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0; }
+
+    .navbar {
+      background: #1e293b;
+      padding: 15px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #334155;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .navbar .logo { font-size: 22px; font-weight: 700; color: #38bdf8; }
+    .navbar .nav-links a {
+      color: #94a3b8;
+      text-decoration: none;
+      margin-left: 20px;
+      font-size: 14px;
+      transition: color 0.2s;
+    }
+    .navbar .nav-links a:hover { color: #38bdf8; }
+    .navbar .nav-links a.active { color: #38bdf8; font-weight: 600; }
+
+    #alertBanner {
+      display: none;
+      background: #dc2626;
+      color: white;
+      padding: 12px 30px;
+      font-size: 14px;
+      font-weight: 600;
+      text-align: center;
+      animation: slidein 0.4s ease;
+    }
+    @keyframes slidein { from { transform: translateY(-40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+    .main { padding: 30px 40px; width: 100%; box-sizing: border-box; }
+
+    .page-title { margin-bottom: 25px; }
+    .page-title h1 { font-size: 26px; font-weight: 700; color: #f1f5f9; }
+    .page-title p { color: #64748b; font-size: 14px; margin-top: 4px; }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 30px;
+    }
+    .stat-card {
+      background: #1e293b;
+      border-radius: 12px;
+      padding: 20px;
+      border: 1px solid #334155;
+      transition: transform 0.2s;
+    }
+    .stat-card:hover { transform: translateY(-2px); }
+    .stat-card .label { font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
+    .stat-card .value { font-size: 28px; font-weight: 700; margin-top: 6px; color: #38bdf8; }
+    .stat-card .sub { font-size: 12px; color: #64748b; margin-top: 4px; }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 20px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .grid-full { margin-bottom: 20px; }
+
+    .card {
+      background: #1e293b;
+      border-radius: 12px;
+      padding: 24px;
+      border: 1px solid #334155;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .card h3 {
+      font-size: 16px;
+      font-weight: 600;
+      color: #f1f5f9;
+      margin-bottom: 16px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #334155;
+    }
+
+    .alert-item {
+      background: #0f172a;
+      border-left: 4px solid #dc2626;
+      padding: 12px 16px;
+      border-radius: 6px;
+      margin-bottom: 10px;
+      font-size: 13px;
+    }
+    .alert-item .alert-title { font-weight: 600; color: #fca5a5; }
+    .alert-item .alert-meta { color: #64748b; font-size: 12px; margin-top: 4px; }
+    .alert-item.warning { border-left-color: #f59e0b; }
+    .alert-item.warning .alert-title { color: #fcd34d; }
+    .alert-item.info { border-left-color: #38bdf8; }
+    .alert-item.info .alert-title { color: #7dd3fc; }
+
+    .form-group { margin-bottom: 14px; }
+    .form-group label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: #94a3b8;
+      margin-bottom: 6px;
+    }
+    .form-group select,
+    .form-group input {
+      width: 100%;
+      background: #0f172a;
+      border: 1px solid #334155;
+      color: #e2e8f0;
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.2s;
+      box-sizing: border-box;
+    }
+    .form-group select:focus,
+    .form-group input:focus { border-color: #38bdf8; }
+
+    .tooltip-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 16px;
+      height: 16px;
+      background: #334155;
+      color: #94a3b8;
+      border-radius: 50%;
+      font-size: 10px;
+      font-weight: 700;
+      cursor: help;
+      position: relative;
+    }
+    .tooltip-icon:hover::after {
+      content: attr(data-tip);
+      position: absolute;
+      bottom: calc(100% + 6px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: #0f172a;
+      border: 1px solid #334155;
+      color: #e2e8f0;
+      font-size: 11px;
+      font-weight: 400;
+      padding: 6px 10px;
+      border-radius: 6px;
+      white-space: nowrap;
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    .autofill-badge {
+      display: none;
+      font-size: 11px;
+      background: rgba(56,189,248,0.15);
+      color: #38bdf8;
+      padding: 2px 8px;
+      border-radius: 10px;
+      margin-left: 6px;
+    }
+    .autofill-badge.show { display: inline; }
+
+    .btn {
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+    .btn:hover { opacity: 0.85; transform: translateY(-1px); }
+    .btn-primary { background: #38bdf8; color: #0f172a; }
+    .btn-success { background: #22c55e; color: #0f172a; }
+    .btn-sm { padding: 6px 12px; font-size: 12px; }
+
+    .result-box {
+      display: none;
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      padding: 16px;
+      margin-top: 16px;
+      text-align: center;
+    }
+    .result-box.show { display: block; }
+    .result-box .delay-val { font-size: 36px; font-weight: 700; color: #f59e0b; }
+    .result-box .delay-label { font-size: 13px; color: #64748b; margin-top: 4px; }
+    .result-box .delay-context { font-size: 12px; color: #94a3b8; margin-top: 8px; font-style: italic; }
+
+    .table-controls {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+    .table-controls input,
+    .table-controls select {
+      background: #0f172a;
+      border: 1px solid #334155;
+      color: #e2e8f0;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      outline: none;
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    thead th {
+      background: #0f172a;
+      color: #64748b;
+      text-align: left;
+      padding: 10px 14px;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    tbody tr { border-bottom: 1px solid #1e293b; transition: background 0.15s; }
+    tbody tr:hover { background: #1e293b; }
+    tbody td { padding: 12px 14px; color: #e2e8f0; }
+
+    .badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+    .badge-green { background: rgba(34,197,94,0.15); color: #22c55e; }
+    .badge-red { background: rgba(220,38,38,0.15); color: #f87171; }
+    .badge-yellow { background: rgba(245,158,11,0.15); color: #fbbf24; }
+    .badge-blue { background: rgba(56,189,248,0.15); color: #38bdf8; }
+
+    .chart-container { position: relative; height: 200px; }
+
+    @media (max-width: 768px) {
+      .grid-2 { grid-template-columns: 1fr; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .main { padding: 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="logo">🚆 TrainTrack AI</div>
+  <div class="nav-links">
+    <a href="/">Home</a>
+    <a href="/passenger" class="active">Passenger</a>
+    <a href="/contact">Contact</a>
+    <a href="/login">Logout</a>
+  </div>
+</nav>
+
+<div id="alertBanner"></div>
+
+<div class="main">
+
+  <div class="page-title">
+    <h1>Passenger Dashboard</h1>
+    <p>Live train status, delay predictions, and alternative routes</p>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="label">Active Disruptions</div>
+      <div class="value" id="statDisruptions">--</div>
+      <div class="sub">Updated live</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Trains On Time</div>
+      <div class="value" id="statOnTime">--</div>
+      <div class="sub">Out of total scheduled</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Avg Delay</div>
+      <div class="value" id="statAvgDelay">--</div>
+      <div class="sub">Minutes today</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Alternative Routes</div>
+      <div class="value" id="statRoutes">4</div>
+      <div class="sub">Currently available</div>
+    </div>
+  </div>
+
+  <!-- ROW 1: ALERTS + PREDICTOR -->
+  <div class="grid-2">
+
+    <!-- LIVE ALERTS -->
+    <div class="card">
+      <h3>Live Disruption Alerts</h3>
+      <div id="alertsList">
+        <p style="color:#64748b; font-size:13px;">Loading alerts...</p>
+      </div>
+    </div>
+
+    <!-- ML DELAY PREDICTOR -->
+    <div class="card">
+      <h3>AI Delay Predictor</h3>
+
+      <div class="form-group">
+        <label>Train Number</label>
+        <input type="text" id="trainNumber" placeholder="e.g. TR-303" />
+      </div>
+
+      <div class="form-group">
+        <label>Train Type</label>
+        <select id="trainType">
+          <option>Express</option>
+          <option>Superfast</option>
+          <option>Local</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Weather Condition</label>
+        <select id="weather">
+          <option>Clear</option>
+          <option>Rainy</option>
+          <option>Foggy</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Time of Day</label>
+        <select id="timeOfDay">
+          <option>Morning</option>
+          <option>Afternoon</option>
+          <option>Evening</option>
+          <option>Night</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>
+          Route Congestion
+          <span class="tooltip-icon" data-tip="How busy is your train route right now? Check Live Alerts above.">?</span>
+          <span class="autofill-badge" id="autofillBadge">Auto-filled</span>
+        </label>
+        <select id="congestion">
+          <option value="Low">Low</option>
+          <option value="Medium">Medium</option>
+          <option value="High">High</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Distance Between Stations (km)</label>
+        <input type="number" id="distance" placeholder="e.g. 25" min="1" max="500" value="20"/>
+      </div>
+
+      <button class="btn btn-primary" onclick="predictDelay()">Predict My Delay</button>
+
+      <div class="result-box" id="resultBox">
+        <div class="delay-val" id="delayVal">--</div>
+        <div class="delay-label">Predicted Delay (minutes)</div>
+        <div class="delay-context" id="delayContext"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ROW 2: CHART + ALTERNATIVE ROUTES -->
+  <div class="grid-2">
+
+    <div class="card">
+      <h3>Delay Trends by Line</h3>
+      <div class="chart-container">
+        <canvas id="delayChart"></canvas>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Alternative Routes</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Route</th>
+            <th>Via</th>
+            <th>Extra Time</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Central → North</td>
+            <td>East Junction</td>
+            <td>+12 min</td>
+            <td><span class="badge badge-green">Available</span></td>
+          </tr>
+          <tr>
+            <td>East → West</td>
+            <td>South Bridge</td>
+            <td>+8 min</td>
+            <td><span class="badge badge-green">Available</span></td>
+          </tr>
+          <tr>
+            <td>South → Airport</td>
+            <td>Metro Line D</td>
+            <td>+20 min</td>
+            <td><span class="badge badge-yellow">Limited</span></td>
+          </tr>
+          <tr>
+            <td>Metro Circle</td>
+            <td>Bus Replacement</td>
+            <td>+35 min</td>
+            <td><span class="badge badge-red">Delayed</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+  <!-- ROW 3: UPCOMING TRAINS TABLE -->
+  <div class="grid-full">
+    <div class="card">
+      <h3>Upcoming Trains</h3>
+      <div class="table-controls">
+        <input type="text" id="searchInput" placeholder="Search train ID or line..." oninput="filterTrains()"/>
+        <select id="statusFilter" onchange="filterTrains()">
+          <option value="">All Statuses</option>
+          <option value="On Time">On Time</option>
+          <option value="Delayed">Delayed</option>
+          <option value="Cancelled">Cancelled</option>
+        </select>
+        <button class="btn btn-success btn-sm" onclick="exportCSV()">Export CSV</button>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Train ID</th>
+            <th>Line</th>
+            <th>Departure</th>
+            <th>Arrival</th>
+            <th>Delay</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="trainsTableBody">
+          <tr><td colspan="6" style="color:#64748b; text-align:center; padding:20px;">Loading trains...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const socket = io();
+
+  // ─── SOCKET LISTENERS ────────────────────────────────────────────────────
+  socket.on('new-disruption', (data) => {
+    const banner = document.getElementById('alertBanner');
+    banner.textContent = `⚠ New Disruption: Train ${data.trainId} on ${data.line} — ${data.cause} (${data.delay} min delay)`;
+    banner.style.display = 'block';
+    setTimeout(() => { banner.style.display = 'none'; }, 8000);
+    loadAlerts();
+    loadStats();
+  });
+
+  socket.on('scheduleUpdated', (updated) => {
+    const idx = allTrains.findIndex(t => t._id === updated._id);
+    if (idx !== -1) allTrains[idx] = updated;
+    filterTrains();
+  });
+
+  // ─── AUTO-FILL CONGESTION ─────────────────────────────────────────────────
+  function autoFillCongestion(activeCount) {
+    const select = document.getElementById('congestion');
+    const badge  = document.getElementById('autofillBadge');
+    if (activeCount >= 3) {
+      select.value = 'High';
+      badge.classList.add('show');
+    } else if (activeCount >= 1) {
+      select.value = 'Medium';
+      badge.classList.add('show');
+    } else {
+      select.value = 'Low';
+      badge.classList.remove('show');
+    }
+  }
+
+  // ─── LOAD STAT CARDS ─────────────────────────────────────────────────────
+  async function loadStats() {
+    try {
+      const res = await fetch('/api/disruptions');
+      const disruptions = await res.json();
+      const active = disruptions.filter(d => d.status !== 'Resolved');
+      document.getElementById('statDisruptions').textContent = active.length;
+      const totalDelay = active.reduce((sum, d) => sum + (d.delay || 0), 0);
+      const avg = active.length > 0 ? (totalDelay / active.length).toFixed(1) : '0.0';
+      document.getElementById('statAvgDelay').textContent = avg + ' min';
+      autoFillCongestion(active.length);
+    } catch (e) {
+      document.getElementById('statDisruptions').textContent = '—';
+      document.getElementById('statAvgDelay').textContent = '—';
+    }
+
+    try {
+      const res = await fetch('/api/schedules');
+      const schedules = await res.json();
+      const onTime = schedules.filter(s => s.status === 'On Time').length;
+      document.getElementById('statOnTime').textContent = onTime;
+    } catch (e) {
+      document.getElementById('statOnTime').textContent = '—';
+    }
+  }
+
+  // ─── LOAD LIVE ALERTS ────────────────────────────────────────────────────
+  async function loadAlerts() {
+    try {
+      const res = await fetch('/api/disruptions');
+      const data = await res.json();
+      const container = document.getElementById('alertsList');
+      const active = data.filter(d => d.status !== 'Resolved').slice(0, 5);
+      if (!active.length) {
+        container.innerHTML = '<p style="color:#22c55e; font-size:13px;">✓ All trains running normally.</p>';
+        return;
+      }
+      container.innerHTML = active.map(d => {
+        const cls = d.severity === 'Critical' ? '' : d.severity === 'Moderate' ? 'warning' : 'info';
+        return `
+          <div class="alert-item ${cls}">
+            <div class="alert-title">Train ${d.trainId} — ${d.line}</div>
+            <div class="alert-meta">${d.cause} | Delay: ${d.delay} min | Severity: ${d.severity}</div>
+          </div>`;
+      }).join('');
+    } catch (e) {
+      document.getElementById('alertsList').innerHTML =
+        '<p style="color:#64748b; font-size:13px;">Unable to load alerts.</p>';
+    }
+  }
+
+  // ─── ML DELAY PREDICTOR ──────────────────────────────────────────────────
+  async function predictDelay() {
+    const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const today = days[new Date().getDay()];
+    const trainNum = document.getElementById('trainNumber').value.trim() || 'N/A';
+
+    const body = {
+      train_number: trainNum,
+      train_type:   document.getElementById('trainType').value,
+      weather:      document.getElementById('weather').value,
+      time_of_day:  document.getElementById('timeOfDay').value,
+      congestion:   document.getElementById('congestion').value,
+      distance:     parseFloat(document.getElementById('distance').value) || 20,
+      day:          today
+    };
+
+    const resultBox = document.getElementById('resultBox');
+    const delayVal  = document.getElementById('delayVal');
+    const delayCtx  = document.getElementById('delayContext');
+
+    delayVal.textContent = '...';
+    resultBox.classList.add('show');
+
+    try {
+      const res = await fetch('http://localhost:5000/predict', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(body)
+      });
+      const data = await res.json();
+      delayVal.textContent = data.predicted_delay + ' min';
+      delayCtx.textContent =
+        `Train ${trainNum} | ${body.train_type} | ${body.congestion} congestion | ${body.time_of_day} | ${body.weather} | ${body.distance} km | ${today}`;
+    } catch (err) {
+      let est = 5;
+      if (body.weather === 'Rainy') est += 8;
+      if (body.weather === 'Foggy') est += 12;
+      if (body.congestion === 'High') est += 10;
+      if (body.congestion === 'Medium') est += 5;
+      if (body.train_type === 'Local') est += 5;
+      if (body.distance > 50) est += 5;
+      delayVal.textContent = '~' + est + ' min';
+      delayCtx.textContent = `Train ${trainNum} — ML server unavailable, showing rule-based estimate.`;
+    }
+  }
+
+  // ─── DELAY TRENDS CHART ──────────────────────────────────────────────────
+  function loadChart() {
+    const ctx = document.getElementById('delayChart').getContext('2d');
+    new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: ['Line A', 'Line B', 'Line C', 'Line D', 'Express', 'Local'],
+        datasets: [{
+          label: 'Avg Delay (min)',
+          data: [12, 8, 18, 5, 10, 15],
+          backgroundColor: 'rgba(56,189,248,0.6)',
+          borderColor: '#38bdf8',
+          borderWidth: 1,
+          borderRadius: 6
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { labels: { color: '#94a3b8', font: { size: 12 } } } },
+        scales: {
+          x: { ticks: { color: '#64748b' }, grid: { color: '#1e293b' } },
+          y: { ticks: { color: '#64748b' }, grid: { color: '#1e293b' } }
+        }
+      }
+    });
+  }
+
+  // ─── UPCOMING TRAINS TABLE ───────────────────────────────────────────────
+  let allTrains = [];
+
+  async function loadTrains() {
+    try {
+      const res = await fetch('/api/schedules');
+      allTrains = await res.json();
+      renderTrains(allTrains);
+    } catch (e) {
+      document.getElementById('trainsTableBody').innerHTML =
+        '<tr><td colspan="6" style="color:#64748b; text-align:center;">Unable to load trains.</td></tr>';
+    }
+  }
+
+  function renderTrains(trains) {
+    const tbody = document.getElementById('trainsTableBody');
+    if (!trains.length) {
+      tbody.innerHTML = '<tr><td colspan="6" style="color:#64748b; text-align:center; padding:20px;">No trains found.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = trains.map(t => {
+      const badgeCls = t.status === 'On Time' ? 'badge-green'
+                     : t.status === 'Delayed'  ? 'badge-yellow'
+                     : 'badge-red';
+      return `
+        <tr>
+          <td>${t.trainId || '—'}</td>
+          <td>${t.line || '—'}</td>
+          <td>${t.scheduledDeparture || '—'}</td>
+          <td>${t.scheduledArrival  || '—'}</td>
+          <td>${t.delay ? t.delay + ' min' : '0 min'}</td>
+          <td><span class="badge ${badgeCls}">${t.status || '—'}</span></td>
+        </tr>`;
+    }).join('');
+  }
+
+  function filterTrains() {
+    const search = document.getElementById('searchInput').value.toLowerCase();
+    const status = document.getElementById('statusFilter').value;
+    const filtered = allTrains.filter(t => {
+      const matchSearch = !search ||
+        (t.trainId && t.trainId.toLowerCase().includes(search)) ||
+        (t.line    && t.line.toLowerCase().includes(search));
+      const matchStatus = !status || t.status === status;
+      return matchSearch && matchStatus;
+    });
+    renderTrains(filtered);
+  }
+
+  function exportCSV() {
+    const rows = [['Train ID','Line','Departure','Arrival','Delay','Status']];
+    allTrains.forEach(t => {
+      rows.push([t.trainId, t.line, t.scheduledDeparture, t.scheduledArrival,
+                 t.delay + ' min', t.status]);
+    });
+    const csv  = rows.map(r => r.join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = 'passenger_trains.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // ─── INIT ────────────────────────────────────────────────────────────────
+  loadStats();
+  loadAlerts();
+  loadChart();
+  loadTrains();
+
+  setInterval(() => { loadAlerts(); loadStats(); }, 30000);
+</script>
+
+</body>
+</html>
