@@ -1,0 +1,13 @@
+node_modules/
+.venv/
+venv/
+.env
+.env.*
+!.env.example
+catboost_info/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+*.log
+.DS_Store

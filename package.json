@@ -1,23 +1,43 @@
 {
-  "name": "delayapp",
-  "version": "1.0.0",
-  "description": "",
+  "name": "traintrack-ai",
+  "version": "2.0.0",
+  "description": "Train delay tracking and prediction platform: Express + MongoDB + Socket.io dashboards with a CatBoost delay-prediction microservice.",
   "main": "server.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+  "private": true,
+  "engines": {
+    "node": ">=20"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "seed": "node scripts/seed.js",
+    "import:dataset": "node scripts/import-dataset.js",
+    "lint": "eslint .",
+    "test": "node --test --test-concurrency=1 \"tests/**/*.test.js\""
+  },
+  "license": "UNLICENSED",
   "dependencies": {
     "bcryptjs": "^3.0.3",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
-    "dotenv": "^17.3.1",
-    "express": "^5.2.1",
+    "csvtojson": "^2.0.14",
+    "dotenv": "^17.4.2",
+    "express": "^5.3.0",
+    "express-rate-limit": "^8.7.3",
+    "helmet": "^8.3.0",
     "jsonwebtoken": "^9.0.3",
-    "mongoose": "^9.3.0",
-    "socket.io": "^4.8.3"
+    "mongoose": "^9.11.4",
+    "pino": "^10.4.0",
+    "pino-http": "^11.0.0",
+    "socket.io": "^4.8.4",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.14.0",
+    "globals": "^17.14.0",
+    "pino-pretty": "^13.2.0",
+    "socket.io-client": "^4.8.4",
+    "supertest": "^7.3.1"
   }
 }

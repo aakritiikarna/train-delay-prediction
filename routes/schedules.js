@@ -1,52 +1,55 @@
+'use strict';
 const express = require('express');
-const router = express.Router();
 const Schedule = require('../models/Schedule');
+const HttpError = require('../utils/HttpError');
+const validate = require('../middleware/validate');
+const schemas = require('../validation/schemas');
+const { audit } = require('../services/audit');
+const { searchFilter, paginate, pageMeta } = require('../utils/helpers');
 
-// GET with search/filter
-router.get('/', async (req, res) => {
-  try {
-    const { line, status, search } = req.query;
-    let query = {};
-    if (line) query.line = line;
-    if (status) query.status = status;
-    if (search) query.$or = [
-      { trainId: new RegExp(search, 'i') },
-      { destination: new RegExp(search, 'i') },
-      { driver: new RegExp(search, 'i') }
-    ];
-    const data = await Schedule.find(query).sort({ scheduledTime: 1 });
-    res.json(data);
-  } catch (err) { res.status(500).json({ error: err.message }); }
-});
+module.exports = function scheduleRoutes({ auth }) {
+  const router = express.Router();
+  const staff = auth.requireRole('controller', 'admin');
 
-// POST
-router.post('/', async (req, res) => {
-  try {
-    const doc = new Schedule(req.body);
-    await doc.save();
-    res.json(doc);
-  } catch (err) { res.status(400).json({ error: err.message }); }
-});
+  // Public: passengers see the timetable.
+  router.get('/', validate({ query: schemas.schedules.list }), async (req, res) => {
+    const { line, status, search, ...pg } = req.valid.query;
+    const filter = {};
+    if (line) filter.line = line;
+    if (status) filter.status = status;
+    if (search) Object.assign(filter, searchFilter(search, ['trainId', 'destination', 'driver']));
+    const [data, total] = await Promise.all([
+      Schedule.find(filter).sort({ scheduledTime: 1 }).skip(paginate(pg).skip).limit(pg.limit).lean(),
+      Schedule.countDocuments(filter),
+    ]);
+    res.json({ data, meta: pageMeta(pg, total) });
+  });
 
-// PUT
-router.put('/:id', async (req, res) => {
-  try {
-    const doc = await Schedule.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    if (!doc) return res.status(404).json({ error: 'Schedule not found' });
+  router.post('/', staff, validate({ body: schemas.schedules.create }), async (req, res) => {
+    const doc = await Schedule.create(req.valid.body);
+    req.app.get('io').emit('scheduleCreated', doc);
+    await audit(req, 'schedule.created', 'Schedule', doc._id, { trainId: doc.trainId });
+    res.status(201).json(doc);
+  });
 
-    // Emit real-time update to all connected clients
+  router.put('/:id', staff, validate({ params: schemas.idParams, body: schemas.schedules.update }), async (req, res) => {
+    const doc = await Schedule.findByIdAndUpdate(req.valid.params.id, req.valid.body, {
+      returnDocument: 'after',
+      runValidators: true,
+    });
+    if (!doc) throw new HttpError(404, 'Schedule not found');
     req.app.get('io').emit('scheduleUpdated', doc);
-
+    await audit(req, 'schedule.updated', 'Schedule', doc._id, req.valid.body);
     res.json(doc);
-  } catch (err) { res.status(500).json({ error: err.message }); }
-});
+  });
 
-// DELETE
-router.delete('/:id', async (req, res) => {
-  try {
-    await Schedule.findByIdAndDelete(req.params.id);
+  router.delete('/:id', ...auth.requireRole('admin'), validate({ params: schemas.idParams }), async (req, res) => {
+    const doc = await Schedule.findByIdAndDelete(req.valid.params.id);
+    if (!doc) throw new HttpError(404, 'Schedule not found');
+    req.app.get('io').emit('scheduleDeleted', { _id: doc._id });
+    await audit(req, 'schedule.deleted', 'Schedule', doc._id, { trainId: doc.trainId });
     res.json({ message: 'Deleted' });
-  } catch (err) { res.status(500).json({ error: err.message }); }
-});
+  });
 
-module.exports = router;
+  return router;
+};

@@ -1,13 +1,12 @@
+'use strict';
 const mongoose = require('mongoose');
 
-const connectDB = async () => {
-  try {
-    await mongoose.connect(process.env.MONGO_URI);
-    console.log('MongoDB connected');
-  } catch (err) {
-    console.error('DB Error:', err.message);
-    process.exit(1);
-  }
-};
+/** Connects to MongoDB. Throws on failure so the caller decides whether to exit. */
+async function connectDB(uri, logger) {
+  mongoose.set('strictQuery', true);
+  await mongoose.connect(uri, { serverSelectionTimeoutMS: 10000 });
+  logger?.info('MongoDB connected');
+  return mongoose.connection;
+}
 
 module.exports = connectDB;

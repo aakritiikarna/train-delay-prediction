@@ -1,313 +1,47 @@
-# 🚆 Train Delay Prediction System
+# TrainTrack AI
 
-A machine learning-based **Train Delay Prediction System** designed to predict potential train delays using historical railway data and relevant journey information.
+Train disruption tracking, dispatch scheduling and ML delay prediction.
+Express 5 + MongoDB (Mongoose) + Socket.io, a vanilla-JS frontend, and a Flask/CatBoost prediction microservice.
 
-The project demonstrates an end-to-end machine learning workflow, including data preprocessing, exploratory data analysis, feature engineering, model training, evaluation, and prediction.
+> Status: work in progress. See **IMPLEMENTATION_STATUS.md** for exactly what is done, what isn't, and how to continue.
 
-## 📌 Overview
+## Features (implemented and tested)
+- Email/password auth (bcrypt, JWT in an httpOnly cookie), roles `passenger` / `controller` / `admin`, enforced on the API **and** on the `/controller` and `/admin` pages.
+- Disruptions and train schedules with search, filters, pagination, CSV export, and real-time updates over Socket.io.
+- Admin panel: create/update/deactivate/delete users, audit log, contact-message inbox.
+- Delay prediction: browser -> Node (`POST /api/predictions`) -> Flask/CatBoost.
+- Security: zod validation, rate limiting, Helmet with a strict CSP, no inline scripts/styles, safe DOM rendering (no `innerHTML` with data), regex-escaped search, mass-assignment protection.
 
-Train delays can be influenced by multiple factors such as scheduled timings, route information, train characteristics, and historical patterns.
+> **About the model:** the bundled dataset (`data/train_delays.csv`) has unknown provenance and the model scores R² 0.96 on it, which strongly suggests synthetic data. Treat the predictor as a demonstration of the pipeline, not a validated operational forecaster.
 
-This project uses historical train-related data to identify patterns and build a predictive model that estimates whether a train is likely to experience a delay.
-
-The project was developed to demonstrate practical applications of **Machine Learning, Data Analysis, and Predictive Modeling**.
-
-## ✨ Features
-
-* 📊 Exploratory Data Analysis
-* 🧹 Data cleaning and preprocessing
-* 🔧 Feature engineering
-* 🤖 Machine learning model training
-* 📈 Model evaluation
-* 🔮 Train delay prediction
-* 📋 Prediction results
-* 📊 Data visualization
-* 🧪 Train/test data splitting
-* 💾 Model-based prediction workflow
-
-## 🛠️ Tech Stack
-
-### Programming Language
-
-* Python
-
-### Data Analysis & Machine Learning
-
-* Pandas
-* NumPy
-* Scikit-learn
-
-### Data Visualization
-
-* Matplotlib
-* Seaborn
-
-### Development Environment
-
-* Jupyter Notebook / Python environment
-
-> Update this section if your project uses additional libraries or frameworks.
-
-## 🔄 Machine Learning Workflow
-
-```text
-Historical Train Data
-        ↓
-Data Collection
-        ↓
-Data Cleaning
-        ↓
-Exploratory Data Analysis
-        ↓
-Feature Engineering
-        ↓
-Data Preprocessing
-        ↓
-Train / Test Split
-        ↓
-Model Training
-        ↓
-Model Evaluation
-        ↓
-Delay Prediction
-```
-
-## 📂 Project Structure
-
-```text
-train-delay-prediction-system/
-│
-├── dataset/
-│   └── train_data.csv
-│
-├── notebooks/
-│   └── train_delay_prediction.ipynb
-│
-├── models/
-│   └── trained_model.pkl
-│
-├── src/
-│   ├── preprocessing.py
-│   ├── train.py
-│   └── predict.py
-│
-├── requirements.txt
-├── README.md
-└── .gitignore
-```
-
-> Adjust the folder structure above to match your actual repository.
-
-## 📊 Exploratory Data Analysis
-
-The dataset is analyzed to understand:
-
-* Missing values
-* Data distribution
-* Train schedules
-* Delay patterns
-* Feature relationships
-* Outliers
-* Correlations between variables
-
-Visualizations are used to identify important patterns within the dataset.
-
-## 🧹 Data Preprocessing
-
-Before training the model, the data goes through several preprocessing steps such as:
-
-* Handling missing values
-* Removing unnecessary columns
-* Converting data types
-* Encoding categorical features
-* Feature selection
-* Feature transformation
-* Splitting data into training and testing sets
-
-## 🤖 Machine Learning Model
-
-The processed dataset is used to train a machine learning model for train delay prediction.
-
-The model learns patterns from historical train data and uses those patterns to generate predictions for new inputs.
-
-### Model Evaluation
-
-The trained model can be evaluated using appropriate classification or regression metrics depending on the prediction target.
-
-Possible evaluation metrics include:
-
-* Accuracy
-* Precision
-* Recall
-* F1 Score
-* Mean Absolute Error
-* Mean Squared Error
-* R² Score
-
-> Keep only the metrics that are actually used in your project.
-
-## 🔮 Prediction
-
-Once the model has been trained, new train-related input data can be passed to the prediction pipeline.
-
-```text
-Input Train Information
-        ↓
-Preprocessing
-        ↓
-Trained ML Model
-        ↓
-Prediction
-        ↓
-Expected Train Delay
-```
-
-## ⚙️ Installation
-
-### 1. Clone the repository
+## Run locally
+Prerequisites: Node >= 20, Python >= 3.11, a MongoDB instance (local or Atlas).
 
 ```bash
-git clone https://github.com/aakritiikarna/train-delay-prediction-system.git
-```
+npm install
+cp .env.example .env            # then edit MONGO_URI, JWT_SECRET, ADMIN_EMAIL, ADMIN_PASSWORD
+npm run seed                    # creates the admin user + demo trains/disruptions (idempotent)
+npm run import:dataset          # loads data/train_delays.csv for the trend chart
 
-### 2. Navigate to the project
-
-```bash
-cd train-delay-prediction-system
-```
-
-### 3. Create a virtual environment
-
-Windows:
-
-```bash
-python -m venv venv
-```
-
-Activate it:
-
-```bash
-venv\Scripts\activate
-```
-
-macOS/Linux:
-
-```bash
-source venv/bin/activate
-```
-
-### 4. Install dependencies
-
-```bash
+# ML service (second terminal)
+cd ai && python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
+python predict_api.py           # http://127.0.0.1:5000
+
+# App (first terminal)
+npm start                       # http://localhost:3000  (npm run dev for auto-reload)
 ```
+Log in at `/login` with `ADMIN_EMAIL` / `ADMIN_PASSWORD`. Self-registration only creates passenger accounts; promote users in `/admin`.
 
-## ▶️ How to Run
-
-If the project is notebook-based:
-
+## Tests
 ```bash
-jupyter notebook
+npm test                        # uses only mongodb://127.0.0.1:27017/traintrack_isolated_test; DROPS that database
+npm run lint
+cd ai && pip install -r requirements-dev.txt && pytest
 ```
+The Node integration tests never use the application's `MONGO_URI`. They validate `MONGO_URI_TEST` before connecting and refuse to run unless its database name is exactly `traintrack_isolated_test`; an already-open Mongoose connection also causes the tests to stop. If using a different MongoDB host, set `MONGO_URI_TEST` to a URI whose database path is `/traintrack_isolated_test` (PowerShell: `$env:MONGO_URI_TEST = "mongodb://127.0.0.1:27017/traintrack_isolated_test"`; Command Prompt: `set MONGO_URI_TEST=mongodb://127.0.0.1:27017/traintrack_isolated_test`). Setup and teardown clear only this dedicated database. Do not point it at any database containing application or other user data.
 
-Open the prediction notebook and execute the cells sequentially.
+Retrain the model: `cd ai && python train_model.py` (writes `model.cbm` and `model_meta.json`).
 
-If the project contains a Python prediction script:
-
-```bash
-python src/predict.py
-```
-
-> Update the command according to the actual files in your repository.
-
-## 📈 Results
-
-The trained model is evaluated on unseen test data to measure its predictive performance.
-
-Add your actual results here, for example:
-
-```text
-Model Performance
-
-Accuracy: XX%
-Precision: XX%
-Recall: XX%
-F1 Score: XX%
-```
-
-Only include the metrics produced by your actual model.
-
-## 📸 Screenshots
-
-Add screenshots of the following sections to make the GitHub repository more attractive:
-
-* Dataset preview
-* Exploratory data analysis
-* Important visualizations
-* Model evaluation
-* Prediction output
-
-Example:
-
-```text
-screenshots/
-├── dataset.png
-├── eda.png
-├── model-results.png
-└── prediction.png
-```
-
-## 💡 Key Learnings
-
-Through this project, I worked with:
-
-* Real-world data preprocessing
-* Exploratory data analysis
-* Feature engineering
-* Machine learning workflows
-* Model evaluation
-* Predictive modeling
-* Python-based data analysis
-* Interpreting machine learning results
-
-## 🚀 Future Improvements
-
-Potential improvements include:
-
-* Comparing multiple machine learning algorithms
-* Hyperparameter tuning
-* Improving feature engineering
-* Adding real-time railway data
-* Building a web-based prediction interface
-* Deploying the trained model as an API
-* Adding interactive dashboards
-* Integrating live train information
-* Improving prediction accuracy
-
-## 🔮 Future Scope
-
-The system can be extended into a complete railway analytics platform that provides:
-
-* Real-time delay prediction
-* Route-based delay analysis
-* Train performance analytics
-* Passenger notification systems
-* Historical delay dashboards
-* Real-time prediction APIs
-
-## 📌 Project Status
-
-**Completed — Machine Learning Project**
-
-The project demonstrates an end-to-end machine learning pipeline for analyzing railway data and predicting train delays.
-
-## 👩‍💻 Author
-
-**Aakriti Karna**
-
-GitHub:
-https://github.com/aakritiikarna
-
-## ⭐ Support
-
-If you found this project useful or interesting, consider giving the repository a ⭐ on GitHub.
+## Layout
+`app.js` app factory · `server.js` bootstrap · `routes/` · `middleware/` · `models/` · `validation/schemas.js` · `services/` · `views/` + `public/` frontend · `ai/` ML service · `scripts/` seed/import · `tests/`

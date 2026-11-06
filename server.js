@@ -1,41 +1,35 @@
-const express = require('express');
-const cors = require('cors');
-const path = require('path');
-const http = require('http');
-const { Server } = require('socket.io');
+'use strict';
 require('dotenv').config();
 
+const { loadEnv } = require('./config/env');
+const { createLogger } = require('./config/logger');
 const connectDB = require('./config/db');
-connectDB();
+const mongoose = require('mongoose');
+const createApp = require('./app');
 
-const app = express();
-const server = http.createServer(app);
-const io = new Server(server);
+async function main() {
+  const env = loadEnv();
+  const logger = createLogger(env);
+  await connectDB(env.MONGO_URI, logger);
 
-app.use(cors());
-app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+  const { server, io } = createApp(env, logger);
+  server.listen(env.PORT, () => logger.info(`Server listening on port ${env.PORT} (${env.NODE_ENV})`));
 
-app.set('io', io);  // ← add this line
+  // Graceful shutdown so platforms (Render, Docker) can restart us without dropping requests.
+  const shutdown = (signal) => {
+    logger.info(`${signal} received, shutting down`);
+    io.close();
+    server.close(async () => {
+      await mongoose.disconnect();
+      process.exit(0);
+    });
+    setTimeout(() => process.exit(1), 10000).unref();
+  };
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
+}
 
-// API routes
-app.use('/api/disruptions', require('./routes/disruptions'));
-app.use('/api/schedules',   require('./routes/schedules'));
-app.use('/api/admin',       require('./routes/admin'));
-
-// Page routes
-app.get('/',           (req, res) => res.sendFile(path.join(__dirname, 'views/index.html')));
-app.get('/login',      (req, res) => res.sendFile(path.join(__dirname, 'views/login.html')));
-app.get('/passenger',  (req, res) => res.sendFile(path.join(__dirname, 'views/passenger.html')));
-app.get('/controller', (req, res) => res.sendFile(path.join(__dirname, 'views/controller.html')));
-app.get('/admin',      (req, res) => res.sendFile(path.join(__dirname, 'views/admin.html')));
-app.get('/contact',    (req, res) => res.sendFile(path.join(__dirname, 'views/contact.html')));
-
-// Socket.io
-io.on('connection', socket => {
-  console.log('Client connected:', socket.id);
-  socket.on('disconnect', () => console.log('Client disconnected:', socket.id));
+main().catch((err) => {
+  console.error(err.message);
+  process.exit(1);
 });
-
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`));

@@ -2,47 +2,29 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>TrainTrack AI</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Home - TrainTrack AI</title>
+  <meta name="description" content="TrainTrack AI: live train disruptions, schedules and machine-learning delay predictions.">
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-  <nav>
-    <div class="logo">TrainTrack AI</div>
-    <div>
-      <a href="/">Home</a>
-      <a href="/passenger">Passenger</a>
-      <a href="/controller">Controller</a>
-      <a href="/login">Login</a>
-      <a href="/contact">Contact</a>
-    </div>
-  </nav>
-
-  <div class="hero">
-    <h1>TrainTrack AI</h1>
-    <p>Smart train delay prediction, rerouting, and real-time disruption alerts</p>
-    <a href="/passenger" class="btn btn-primary">Passenger Dashboard</a>
-    <a href="/controller" class="btn btn-secondary">Controller Dashboard</a>
-  </div>
-
-  <div class="cards">
-    <div class="card">
-      <h3>Delay Prediction</h3>
-      <p>AI-powered predictions based on route, weather, and historical data.</p>
-    </div>
-    <div class="card">
-      <h3>Rerouting</h3>
-      <p>Instant alternative route suggestions when delays are detected.</p>
-    </div>
-    <div class="card">
-      <h3>Real-time Alerts</h3>
-      <p>Live disruption alerts pushed to passengers and controllers.</p>
-    </div>
-    <div class="card">
-      <h3>Dispatch Scheduling</h3>
-      <p>Controllers can manage and update train dispatch schedules easily.</p>
-    </div>
-  </div>
-
-  <footer>© 2026 TrainTrack AI. All rights reserved.</footer>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-nav" id="siteNav"></header>
+  <main id="main">
+    <section class="hero">
+      <h1>TrainTrack AI</h1>
+      <p>Live disruption alerts, dispatch scheduling, and machine-learning delay predictions for passengers and controllers.</p>
+      <a href="/passenger" class="btn">Passenger Dashboard</a>
+      <a href="/controller" class="btn btn-secondary">Controller Dashboard</a>
+    </section>
+    <section class="feature-cards" aria-label="Features">
+      <article class="card"><h3>Delay Prediction</h3><p>A CatBoost model trained on historical delays estimates journey delay from distance, weather, congestion, train type and time.</p></article>
+      <article class="card"><h3>Real-time Alerts</h3><p>Disruptions logged by controllers are pushed instantly to every open dashboard over WebSockets.</p></article>
+      <article class="card"><h3>Dispatch Scheduling</h3><p>Controllers update departures, delays and status; passengers see changes live.</p></article>
+      <article class="card"><h3>Role-based Access</h3><p>Passengers, controllers and admins each get exactly the permissions they need, enforced on the server.</p></article>
+    </section>
+  </main>
+  <footer>© 2026 TrainTrack AI</footer>
+  <script src="/js/common.js"></script>
 </body>
 </html>

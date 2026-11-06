@@ -1,49 +1,56 @@
+'use strict';
 const express = require('express');
-const router = express.Router();
 const Disruption = require('../models/Disruption');
+const HttpError = require('../utils/HttpError');
+const validate = require('../middleware/validate');
+const schemas = require('../validation/schemas');
+const { audit } = require('../services/audit');
+const { searchFilter, paginate, pageMeta } = require('../utils/helpers');
 
-// GET with search/filter
-router.get('/', async (req, res) => {
-  try {
-    const { line, status, search } = req.query;
-    let query = {};
-    if (line) query.line = line;
-    if (status) query.status = status;
-    if (search) query.$or = [
-      { trainId: new RegExp(search, 'i') },
-      { cause: new RegExp(search, 'i') },
-      { line: new RegExp(search, 'i') }
-    ];
-    const data = await Disruption.find(query).sort({ createdAt: -1 });
-    res.json(data);
-  } catch (err) { res.status(500).json({ error: err.message }); }
-});
+module.exports = function disruptionRoutes({ auth }) {
+  const router = express.Router();
+  const staff = auth.requireRole('controller', 'admin');
 
-// POST - log new disruption
-router.post('/', async (req, res) => {
-  try {
-    const doc = new Disruption(req.body);
-    await doc.save();
-    req.io.emit('new-disruption', doc);   // real-time alert
+  // Public: passengers see live disruptions.
+  router.get('/', validate({ query: schemas.disruptions.list }), async (req, res) => {
+    const { line, status, search, ...pg } = req.valid.query;
+    const filter = {};
+    if (line) filter.line = line;
+    if (status) filter.status = status;
+    if (search) Object.assign(filter, searchFilter(search, ['trainId', 'cause', 'line']));
+    const [data, total] = await Promise.all([
+      Disruption.find(filter).sort({ createdAt: -1 }).skip(paginate(pg).skip).limit(pg.limit).lean(),
+      Disruption.countDocuments(filter),
+    ]);
+    res.json({ data, meta: pageMeta(pg, total) });
+  });
+
+  router.post('/', staff, validate({ body: schemas.disruptions.create }), async (req, res) => {
+    const doc = await Disruption.create({ ...req.valid.body, reportedBy: req.user._id });
+    req.app.get('io').emit('new-disruption', doc); // real-time alert to all dashboards
+    await audit(req, 'disruption.created', 'Disruption', doc._id, { trainId: doc.trainId, line: doc.line });
+    res.status(201).json(doc);
+  });
+
+  router.put('/:id/resolve', staff, validate({ params: schemas.idParams }), async (req, res) => {
+    const doc = await Disruption.findByIdAndUpdate(
+      req.valid.params.id,
+      { status: 'Resolved', resolvedAt: new Date() },
+      { returnDocument: 'after' }
+    );
+    if (!doc) throw new HttpError(404, 'Disruption not found');
+    req.app.get('io').emit('disruption-resolved', doc);
+    await audit(req, 'disruption.resolved', 'Disruption', doc._id);
     res.json(doc);
-  } catch (err) { res.status(400).json({ error: err.message }); }
-});
+  });
 
-// PUT - resolve
-router.put('/:id/resolve', async (req, res) => {
-  try {
-    const doc = await Disruption.findByIdAndUpdate(req.params.id, { status: 'Resolved' }, { new: true });
-    req.io.emit('disruption-resolved', doc);
-    res.json(doc);
-  } catch (err) { res.status(500).json({ error: err.message }); }
-});
-
-// DELETE
-router.delete('/:id', async (req, res) => {
-  try {
-    await Disruption.findByIdAndDelete(req.params.id);
+  router.delete('/:id', ...auth.requireRole('admin'), validate({ params: schemas.idParams }), async (req, res) => {
+    const doc = await Disruption.findByIdAndDelete(req.valid.params.id);
+    if (!doc) throw new HttpError(404, 'Disruption not found');
+    req.app.get('io').emit('disruption-deleted', { _id: doc._id });
+    await audit(req, 'disruption.deleted', 'Disruption', doc._id, { trainId: doc.trainId });
     res.json({ message: 'Deleted' });
-  } catch (err) { res.status(500).json({ error: err.message }); }
-});
+  });
 
-module.exports = router;
+  return router;
+};

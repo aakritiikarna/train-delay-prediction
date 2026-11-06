@@ -2,70 +2,39 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Login - TrainTrack AI</title>
+  <meta name="description" content="TrainTrack AI: live train disruptions, schedules and machine-learning delay predictions.">
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-  <nav>
-    <div class="logo">TrainTrack AI</div>
-    <div>
-      <a href="/">Home</a>
-      <a href="/passenger">Passenger</a>
-      <a href="/controller">Controller</a>
-      <a href="/contact">Contact</a>
-    </div>
-  </nav>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-nav" id="siteNav"></header>
+  <main id="main">
+    <div class="auth-box">
+      <h1 id="authTitle">Welcome back</h1>
+      <div class="tab-switch" role="tablist" aria-label="Login or register">
+        <button type="button" role="tab" id="tabLogin" aria-selected="true" aria-controls="loginForm">Login</button>
+        <button type="button" role="tab" id="tabRegister" aria-selected="false" aria-controls="registerForm">Register</button>
+      </div>
 
-  <div class="auth-box">
-    <h2>Welcome Back</h2>
-    <div class="tab-switch">
-      <button class="active" onclick="showTab('login', this)">Login</button>
-      <button onclick="showTab('register', this)">Register</button>
-    </div>
+      <form id="loginForm" role="tabpanel" aria-labelledby="tabLogin" novalidate>
+        <div class="field"><label for="lEmail">Email</label><input id="lEmail" type="email" autocomplete="username" required></div>
+        <div class="field"><label for="lPassword">Password</label><input id="lPassword" type="password" autocomplete="current-password" required></div>
+        <button class="btn btn-block" type="submit">Login</button>
+      </form>
 
-    <div id="login">
-      <div class="form-group">
-        <label>Email</label>
-        <input type="email" placeholder="you@example.com">
-      </div>
-      <div class="form-group">
-        <label>Password</label>
-        <input type="password" placeholder="••••••••">
-      </div>
-      <button class="btn btn-primary" style="width:100%">Login</button>
+      <form id="registerForm" role="tabpanel" aria-labelledby="tabRegister" hidden novalidate>
+        <div class="field"><label for="rName">Full name</label><input id="rName" type="text" autocomplete="name" required minlength="2" maxlength="80"></div>
+        <div class="field"><label for="rEmail">Email</label><input id="rEmail" type="email" autocomplete="username" required></div>
+        <div class="field"><label for="rPassword">Password</label><input id="rPassword" type="password" autocomplete="new-password" required minlength="8" maxlength="72"><div class="hint">At least 8 characters. New accounts are passenger accounts; staff roles are granted by an administrator.</div></div>
+        <button class="btn btn-block" type="submit">Create account</button>
+      </form>
+      <div id="authMsg" class="form-msg" role="alert" aria-live="assertive"></div>
     </div>
-
-    <div id="register" style="display:none">
-      <div class="form-group">
-        <label>Full Name</label>
-        <input type="text" placeholder="John Doe">
-      </div>
-      <div class="form-group">
-        <label>Email</label>
-        <input type="email" placeholder="you@example.com">
-      </div>
-      <div class="form-group">
-        <label>Password</label>
-        <input type="password" placeholder="••••••••">
-      </div>
-      <div class="form-group">
-        <label>Role</label>
-        <select>
-          <option>Passenger</option>
-          <option>Controller</option>
-        </select>
-      </div>
-      <button class="btn btn-primary" style="width:100%">Register</button>
-    </div>
-  </div>
-
-  <script>
-    function showTab(tab, btn) {
-      document.getElementById('login').style.display = tab === 'login' ? 'block' : 'none';
-      document.getElementById('register').style.display = tab === 'register' ? 'block' : 'none';
-      document.querySelectorAll('.tab-switch button').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-    }
-  </script>
+  </main>
+  <footer>© 2026 TrainTrack AI</footer>
+  <script src="/js/common.js"></script>
+  <script src="/js/login.js"></script>
 </body>
 </html>

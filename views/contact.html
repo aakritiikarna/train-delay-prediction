@@ -2,47 +2,31 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Contact - TrainTrack AI</title>
+  <meta name="description" content="TrainTrack AI: live train disruptions, schedules and machine-learning delay predictions.">
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-  <nav>
-    <div class="logo">TrainTrack AI</div>
-    <div>
-      <a href="/">Home</a>
-      <a href="/passenger">Passenger</a>
-      <a href="/controller">Controller</a>
-      <a href="/login">Login</a>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-nav" id="siteNav"></header>
+  <main id="main">
+    <div class="container">
+      <section class="section contact-box" aria-labelledby="contactTitle">
+        <h2 id="contactTitle">Contact Us</h2>
+        <p class="muted">Have a question or an issue? Send us a message.</p>
+        <form id="contactForm" novalidate>
+          <div class="field"><label for="cName">Your name</label><input id="cName" name="name" type="text" autocomplete="name" required minlength="2" maxlength="80"></div>
+          <div class="field"><label for="cEmail">Email</label><input id="cEmail" name="email" type="email" autocomplete="email" required maxlength="254"></div>
+          <div class="field"><label for="cMessage">Message</label><textarea id="cMessage" name="message" rows="5" required minlength="10" maxlength="2000"></textarea><div class="hint">10 to 2000 characters.</div></div>
+          <button class="btn" type="submit">Send Message</button>
+          <div id="contactMsg" class="form-msg" role="status" aria-live="polite"></div>
+        </form>
+      </section>
     </div>
-  </nav>
-
-  <div style="max-width:560px; margin:60px auto; padding:0 20px">
-    <div class="section">
-      <h3>Contact Us</h3>
-      <p style="color:#94a3b8; margin-bottom:20px">Have a question or issue? Send us a message.</p>
-      <div class="form-group">
-        <label>Your Name</label>
-        <input type="text" placeholder="John Doe">
-      </div>
-      <div class="form-group">
-        <label>Email</label>
-        <input type="email" placeholder="you@example.com">
-      </div>
-      <div class="form-group">
-        <label>Message</label>
-        <textarea rows="5" placeholder="Type your message here..."></textarea>
-      </div>
-      <button class="btn btn-primary" onclick="sendMsg()">Send Message</button>
-      <div id="sent" style="margin-top:12px; color:#22c55e; display:none">Message sent! We'll get back to you shortly.</div>
-    </div>
-  </div>
-
-  <footer>© 2026 TrainTrack AI. All rights reserved.</footer>
-
-  <script>
-    function sendMsg() {
-      document.getElementById('sent').style.display = 'block';
-    }
-  </script>
+  </main>
+  <footer>© 2026 TrainTrack AI</footer>
+  <script src="/js/common.js"></script>
+  <script src="/js/contact.js"></script>
 </body>
 </html>

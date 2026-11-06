@@ -1,0 +1,56 @@
+{
+  "version": "catboost-20261103",
+  "trained_at": "2026-11-03T03:38:40+00:00",
+  "features": [
+    "Distance Between Stations (km)",
+    "Weather Conditions",
+    "Day of the Week",
+    "Time of Day",
+    "Train Type",
+    "Route Congestion"
+  ],
+  "categories": {
+    "Weather Conditions": [
+      "Clear",
+      "Foggy",
+      "Rainy"
+    ],
+    "Day of the Week": [
+      "Friday",
+      "Monday",
+      "Saturday",
+      "Sunday",
+      "Thursday",
+      "Tuesday",
+      "Wednesday"
+    ],
+    "Time of Day": [
+      "Afternoon",
+      "Evening",
+      "Morning",
+      "Night"
+    ],
+    "Train Type": [
+      "Express",
+      "Local",
+      "Superfast"
+    ],
+    "Route Congestion": [
+      "High",
+      "Low",
+      "Medium"
+    ]
+  },
+  "distance_range_km": [
+    0.0,
+    955.0
+  ],
+  "metrics": {
+    "mae": 27.49,
+    "rmse": 40.73,
+    "r2": 0.958,
+    "baseline_median_mae": 83.83,
+    "test_rows": 492,
+    "train_rows": 1964
+  }
+}
