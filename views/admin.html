@@ -19,7 +19,47 @@
         <div class="stat-card"><div class="label">Admins</div><div class="value red" id="adminCount">--</div></div>
         <div class="stat-card"><div class="label">Controllers</div><div class="value yellow" id="controllerCount">--</div></div>
         <div class="stat-card"><div class="label">Passengers</div><div class="value green" id="passengerCount">--</div></div>
+        <div class="stat-card"><div class="label">Active accounts</div><div class="value" id="activeUsers">--</div></div>
+        <div class="stat-card"><div class="label">Verified emails</div><div class="value green" id="verifiedEmails">--</div></div>
+        <div class="stat-card"><div class="label">Failed logins (7d)</div><div class="value red" id="failedLogins">--</div></div>
       </section>
+
+      <section class="section" aria-labelledby="notificationOverviewTitle">
+        <h2 id="notificationOverviewTitle">Notification overview</h2>
+        <div class="grid-stats">
+          <div class="stat-card"><div class="label">Total notifications</div><div class="value" id="notificationTotal">--</div></div>
+          <div class="stat-card"><div class="label">Unread</div><div class="value yellow" id="notificationUnread">--</div></div>
+          <div class="stat-card"><div class="label">Created (24h)</div><div class="value" id="notificationRecent">--</div></div>
+          <div class="stat-card"><div class="label">Email failures</div><div class="value red" id="notificationEmailFailures">--</div></div>
+        </div>
+        <div class="table-wrap"><table>
+          <caption class="sr-only">Recent system notification and email status</caption>
+          <thead><tr><th scope="col">When</th><th scope="col">User</th><th scope="col">Notification</th><th scope="col">Email status</th></tr></thead>
+          <tbody id="adminNotificationBody"><tr><td class="empty" colspan="4">Loading notifications...</td></tr></tbody>
+        </table></div>
+      </section>
+
+      <div class="grid-2">
+        <section class="card" aria-labelledby="healthTitle">
+          <div class="card-head"><h2 id="healthTitle">System health</h2><button class="btn btn-secondary btn-sm" type="button" id="refreshHealth">Refresh</button></div>
+          <ul id="healthList" class="health-list"><li class="muted">Checking services...</li></ul>
+          <p class="hint">Email API reports configuration only; SMTP reports TCP connectivity only. Email outcomes appear in notification history, and provider acceptance does not confirm delivery.</p>
+        </section>
+        <section class="card" aria-labelledby="securityTitle">
+          <h2 id="securityTitle">Security events — failed sign-ins</h2>
+          <div class="toolbar">
+            <label class="sr-only" for="securitySearch">Search security events</label>
+            <input id="securitySearch" type="search" placeholder="Search email, reason, or IP">
+            <label class="sr-only" for="securityFrom">From date</label><input id="securityFrom" type="date">
+            <label class="sr-only" for="securityTo">To date</label><input id="securityTo" type="date">
+          </div>
+          <div class="table-wrap"><table>
+            <caption class="sr-only">Failed sign-in security events</caption>
+            <thead><tr><th scope="col">When</th><th scope="col">Account</th><th scope="col">Reason</th><th scope="col">IP</th></tr></thead>
+            <tbody id="securityBody"><tr><td class="empty" colspan="4">Loading...</td></tr></tbody>
+          </table></div>
+        </section>
+      </div>
 
       <section class="section" aria-labelledby="addTitle">
         <h2 id="addTitle">Add New User</h2>
@@ -37,6 +77,7 @@
 
       <section class="section" aria-labelledby="usersTitle">
         <div class="card-head"><h2 id="usersTitle">Manage Users</h2><button class="btn btn-secondary btn-sm" type="button" id="exportUsers">Export CSV</button></div>
+        <p class="hint">Email verification status reflects account metadata; verification emails require a configured email provider.</p>
         <div class="toolbar">
           <label class="sr-only" for="searchUser">Search users</label>
           <input type="search" id="searchUser" placeholder="Search name or email...">
@@ -45,8 +86,8 @@
         </div>
         <div class="table-wrap"><table>
           <caption class="sr-only">Users</caption>
-          <thead><tr><th scope="col">Name</th><th scope="col">Email</th><th scope="col">Role</th><th scope="col">Status</th><th scope="col">Actions</th></tr></thead>
-          <tbody id="userBody"><tr><td class="empty" colspan="5">Loading...</td></tr></tbody>
+          <thead><tr><th scope="col">Name</th><th scope="col">Email</th><th scope="col">Email verification</th><th scope="col">Role</th><th scope="col">Status</th><th scope="col">Account activity</th><th scope="col">Actions</th></tr></thead>
+          <tbody id="userBody"><tr><td class="empty" colspan="7">Loading...</td></tr></tbody>
         </table></div>
         <div class="pager"><button class="btn btn-secondary btn-sm" type="button" id="prevPage">Previous</button><span id="pageInfo"></span><button class="btn btn-secondary btn-sm" type="button" id="nextPage">Next</button></div>
       </section>
@@ -54,6 +95,12 @@
       <div class="grid-2">
         <section class="card" aria-labelledby="auditTitle">
           <h2 id="auditTitle">Recent Activity (audit log)</h2>
+          <div class="toolbar">
+            <label class="sr-only" for="auditSearch">Search audit logs</label><input id="auditSearch" type="search" placeholder="Search actor or action">
+            <label class="sr-only" for="auditAction">Filter by action</label><input id="auditAction" type="search" placeholder="Exact action">
+            <label class="sr-only" for="auditFrom">From date</label><input id="auditFrom" type="date">
+            <label class="sr-only" for="auditTo">To date</label><input id="auditTo" type="date">
+          </div>
           <div class="table-wrap"><table>
             <caption class="sr-only">Recent audit log entries</caption>
             <thead><tr><th scope="col">When</th><th scope="col">Who</th><th scope="col">Action</th></tr></thead>
@@ -62,15 +109,24 @@
         </section>
         <section class="card" aria-labelledby="msgTitle">
           <h2 id="msgTitle">Contact Messages</h2>
+          <div class="toolbar">
+            <label class="sr-only" for="messageReadFilter">Filter read status</label>
+            <select id="messageReadFilter"><option value="">All messages</option><option value="false">Unread</option><option value="true">Read</option></select>
+          </div>
           <div class="table-wrap"><table>
             <caption class="sr-only">Recent contact messages</caption>
-            <thead><tr><th scope="col">From</th><th scope="col">Message</th><th scope="col">Received</th></tr></thead>
-            <tbody id="msgBody"><tr><td class="empty" colspan="3">Loading...</td></tr></tbody>
+            <thead><tr><th scope="col">From</th><th scope="col">Message</th><th scope="col">Received</th><th scope="col">Read status</th></tr></thead>
+            <tbody id="msgBody"><tr><td class="empty" colspan="4">Loading...</td></tr></tbody>
           </table></div>
         </section>
       </div>
     </div>
   </main>
+  <dialog id="userDetailsDialog" aria-labelledby="userDetailsTitle">
+    <h2 id="userDetailsTitle">User account details</h2>
+    <div id="userDetailsContent"></div>
+    <div class="dialog-actions"><button class="btn btn-secondary" type="button" id="closeUserDetails">Close</button></div>
+  </dialog>
   <footer>© 2026 TrainTrack AI</footer>
   <script src="/js/common.js"></script>
   <script src="/js/admin.js"></script>

@@ -22,6 +22,40 @@
         <div class="stat-card"><div class="label">On-time rate</div><div class="value green" id="onTimeRate">--</div><div class="sub">On Time, On Track or Departed</div></div>
       </section>
 
+      <div class="grid-2">
+        <section class="card" aria-labelledby="opsTitle">
+          <h2 id="opsTitle">Operations overview</h2>
+          <p class="hint">Live counts and status analytics from recorded schedules and disruptions.</p>
+          <div class="table-wrap"><table>
+            <caption class="sr-only">Schedule status counts</caption>
+            <thead><tr><th scope="col">Train status</th><th scope="col">Count</th></tr></thead>
+            <tbody id="statusAnalyticsBody"><tr><td class="empty" colspan="2">Loading...</td></tr></tbody>
+          </table></div>
+          <div class="table-wrap">
+            <table>
+              <caption class="sr-only">Disruption status and severity analytics</caption>
+              <thead><tr><th scope="col">Disruption</th><th scope="col">Count</th><th scope="col">Average delay</th></tr></thead>
+              <tbody id="disruptionAnalyticsBody"><tr><td class="empty" colspan="3">Loading...</td></tr></tbody>
+            </table>
+          </div>
+        </section>
+        <section class="card" aria-labelledby="routeTitle">
+          <h2 id="routeTitle">Recorded lines &amp; destinations</h2>
+          <p class="hint">Based only on recorded lines and destinations. The database has no station master data, station coordinates, or live GPS positions.</p>
+          <div class="table-wrap"><table>
+            <caption class="sr-only">Lines and destinations in schedule records</caption>
+            <thead><tr><th scope="col">Line</th><th scope="col">Trains</th><th scope="col">Recorded destinations</th></tr></thead>
+            <tbody id="routeBody"><tr><td class="empty" colspan="3">Loading...</td></tr></tbody>
+          </table></div>
+        </section>
+      </div>
+
+      <section class="section" aria-labelledby="notificationTitle">
+        <h2 id="notificationTitle">Operational activity &amp; notifications</h2>
+        <p class="hint">Notifications reflect persisted schedule/disruption events. No train position or GPS feed is available.</p>
+        <ul id="activityFeed" class="activity-feed" aria-live="polite"><li class="muted">Loading activity...</li></ul>
+      </section>
+
       <section class="section" aria-labelledby="chartTitle">
         <h2 id="chartTitle">Disruptions logged (last 7 days)</h2>
         <div class="chart-box"><canvas id="dailyChart" role="img" aria-label="Line chart of disruptions logged per day"></canvas></div>
@@ -33,7 +67,7 @@
           <label class="sr-only" for="searchDisrupt">Search disruptions</label>
           <input type="search" id="searchDisrupt" placeholder="Search train or cause...">
           <label class="sr-only" for="filterLine">Filter by line</label>
-          <select id="filterLine"><option value="">All lines</option><option>Line A</option><option>Line B</option><option>Line C</option><option>Line D</option></select>
+          <select id="filterLine"><option value="">All recorded lines</option></select>
         </div>
         <div class="table-wrap"><table>
           <caption class="sr-only">Active disruptions</caption>
@@ -57,18 +91,38 @@
         </form>
       </section>
 
+      <section class="section" aria-labelledby="createScheduleTitle">
+        <h2 id="createScheduleTitle">Create train schedule</h2>
+        <form id="scheduleCreateForm">
+          <div class="form-grid">
+            <div class="field"><label for="createTrainId">Train ID</label><input id="createTrainId" required maxlength="20"></div>
+            <div class="field"><label for="createLine">Line</label><input id="createLine" required maxlength="40"></div>
+            <div class="field"><label for="createDate">Scheduled date</label><input id="createDate" type="date" required></div>
+            <div class="field"><label for="createDeparture">Scheduled departure</label><input id="createDeparture" type="time" required></div>
+            <div class="field"><label for="createArrival">Scheduled arrival</label><input id="createArrival" type="time"></div>
+            <div class="field"><label for="createDestination">Destination</label><input id="createDestination" maxlength="80"></div>
+            <div class="field"><label for="createDriver">Driver</label><input id="createDriver" maxlength="80"></div>
+            <div class="field"><label for="createStatus">Status</label><select id="createStatus"><option>On Time</option><option>On Track</option><option>Departed</option><option>Delayed</option><option>Critical</option><option>Cancelled</option></select></div>
+          </div>
+          <button class="btn" type="submit">Create schedule</button>
+          <div id="scheduleCreateMsg" class="form-msg" role="status" aria-live="polite"></div>
+        </form>
+      </section>
+
       <section class="section" aria-labelledby="schedTitle">
         <div class="card-head"><h2 id="schedTitle">Dispatch Schedule</h2><button class="btn btn-secondary btn-sm" type="button" id="exportSchedule">Export CSV</button></div>
         <div class="toolbar">
           <label class="sr-only" for="searchSchedule">Search schedule</label>
           <input type="search" id="searchSchedule" placeholder="Search train, destination or driver...">
+          <label class="sr-only" for="filterScheduleLine">Filter schedule by line</label>
+          <select id="filterScheduleLine"><option value="">All recorded lines</option></select>
           <label class="sr-only" for="filterStatus">Filter by status</label>
           <select id="filterStatus"><option value="">All statuses</option><option>On Time</option><option>On Track</option><option>Departed</option><option>Delayed</option><option>Critical</option><option>Cancelled</option></select>
         </div>
         <div class="table-wrap"><table>
           <caption class="sr-only">Dispatch schedule</caption>
-          <thead><tr><th scope="col">Train</th><th scope="col">Scheduled</th><th scope="col">Actual</th><th scope="col">Destination</th><th scope="col">Driver</th><th scope="col">Status</th><th scope="col">Action</th></tr></thead>
-          <tbody id="scheduleBody"><tr><td class="empty" colspan="7">Loading...</td></tr></tbody>
+          <thead><tr><th scope="col">Train</th><th scope="col">Date</th><th scope="col">Scheduled</th><th scope="col">Actual</th><th scope="col">Destination</th><th scope="col">Driver</th><th scope="col">Status</th><th scope="col">Action</th></tr></thead>
+          <tbody id="scheduleBody"><tr><td class="empty" colspan="8">Loading...</td></tr></tbody>
         </table></div>
         <p class="hint" id="schedNote"></p>
       </section>
@@ -80,6 +134,7 @@
       <h2 id="editTitle">Edit schedule</h2>
       <input type="hidden" id="editId">
       <div class="field"><label for="editTrainId">Train ID</label><input id="editTrainId" type="text" readonly></div>
+      <div class="field"><label for="editDate">Scheduled date</label><input id="editDate" type="date"></div>
       <div class="field"><label for="editActualTime">Actual departure</label><input id="editActualTime" type="time"></div>
       <div class="field"><label for="editArrival">Scheduled arrival</label><input id="editArrival" type="time"></div>
       <div class="field"><label for="editDelay">Delay (minutes)</label><input id="editDelay" type="number" min="0" max="1440"></div>

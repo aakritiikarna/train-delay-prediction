@@ -13,7 +13,8 @@
     "seed": "node scripts/seed.js",
     "import:dataset": "node scripts/import-dataset.js",
     "lint": "eslint .",
-    "test": "node --test --test-concurrency=1 \"tests/**/*.test.js\""
+    "test": "node --test --test-concurrency=1 \"tests/**/*.test.js\"",
+    "assets:landing": "node scripts/vendor-landing-libraries.js && node scripts/generate-train-model.mjs"
   },
   "license": "UNLICENSED",
   "dependencies": {
@@ -24,12 +25,14 @@
     "dotenv": "^17.4.2",
     "express": "^5.3.0",
     "express-rate-limit": "^8.7.3",
+    "gsap": "^3.15.1",
     "helmet": "^8.3.0",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.11.4",
     "pino": "^10.4.0",
     "pino-http": "^11.0.0",
     "socket.io": "^4.8.4",
+    "three": "^0.187.0",
     "zod": "^4.6.7"
   },
   "devDependencies": {

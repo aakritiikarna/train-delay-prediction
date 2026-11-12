@@ -41,8 +41,10 @@ Controller self-registration removed (admin grants roles); API responses are `{d
 ## 4. Feature status
 **Complete (tested):** auth, RBAC, disruptions/schedules API, admin user management, audit log, contact form, stats/analytics endpoints, prediction proxy, ML service, rate limiting, security headers.
 **Implemented, only lightly verified:** frontend pages (one manual Playwright run, see below; no automated UI tests in `npm test`).
-**Partial:** pagination UI (admin has pager; other lists load up to 200 and show "Showing x of y"); schedule creation exists in the API only, there is no UI form for it.
-**Not started:** Dockerfiles/compose, `render.yaml`/deployment config, CI workflow, `PROJECT_DOCUMENTATION.md`, deployment guide, screenshots, OpenAPI docs, real rerouting feature, notification/email, password reset, automated e2e in CI.
+**Phase 5 complete:** controller operations overview, schedule create/edit/status workflow, admin-only schedule deletion, disruption create/resolve, line/search filters, data-backed line/destination overview, activity/Socket.IO notifications, schedule/disruption analytics, CSV export, and optional backward-compatible schedule dates.
+**Phase 6 complete:** admin overview and account metrics, paginated/searchable users, account details and stored email-verification state, audited read/unread contact status, audit filters, failed-login/security-event monitoring, and admin-only system health for Node, MongoDB, Flask/CatBoost, and optional SMTP TCP reachability.
+**Remaining partial:** non-controller lists load up to 200 and show "Showing x of y"; no email verification or mail-sending workflow exists. No GPS positions or station master data are available, so dashboards do not show train locations or invent station information.
+**Not started:** Dockerfiles/compose, `render.yaml`/deployment config, CI workflow, `PROJECT_DOCUMENTATION.md`, deployment guide, screenshots, OpenAPI docs, real rerouting feature, email notifications, password reset, automated e2e in CI.
 
 ## 5. What was actually run
 | Command | Result |
@@ -54,6 +56,7 @@ Controller self-registration removed (admin grants roles); API responses are `{d
 | `python train_model.py` | metrics above |
 | `npm run seed` (x2), `npm run import:dataset` | ran without error; imported 2,878 rows. I did not separately count documents after the second seed run. |
 | Full stack manual run (Node :3111 + Flask + Mongo) + Playwright script (`tests/e2e/smoke.manual.js`) | Passed: pages load with no CSP violations; prediction returned a value; anonymous `/controller` redirects to login; controller login, schedule edit, `/admin` blocked for controller; admin panel loads; no horizontal scroll at 375 px; XSS payload rendered as literal text, no alert. This caught and I fixed one real bug (a `const` used before declaration in `passenger.js`/`controller.js`). |
+| **Phase 5/6 verification (12 Nov 2026)** | `npm test`: **60 passed, 0 failed** including new schedule-date, operations RBAC/data, admin health/security/message workflows, and schedule Socket.IO event tests. `npm run lint`: clean. Python tests were not run in this environment because pytest/Flask/CatBoost are not installed. |
 | **Not run** | Docker, any deployment, `NODE_ENV=production`, Node 20, Windows, screen readers, cross-browser (Chromium only), load tests. |
 
 ## 6. Known issues / caveats
@@ -76,7 +79,7 @@ Controller self-registration removed (admin grants roles); API responses are `{d
 1. Run the app once end to end yourself (README steps) and click through all three roles.
 2. Add CI (GitHub Actions: Mongo service container, `npm ci && npm run lint && npm test`; Python `pytest`, `ruff`).
 3. Deployment: Node web service (build `npm ci`, start `npm start`, `NODE_ENV=production`, `TRUST_PROXY=1`) + Python web service (`gunicorn predict_api:app`) + MongoDB Atlas; set `ML_SERVICE_URL`/`ML_API_KEY`; verify `/health?deep=true`. Add `render.yaml`/Dockerfiles (not written).
-4. Add a UI form for creating schedules; paginate the dashboard lists.
+4. Paginate the controller dashboard lists.
 5. Convert the manual Playwright script into a CI e2e job.
 6. Write `PROJECT_DOCUMENTATION.md`, screenshots, API docs (OpenAPI); replace the dataset with real data if available and re-run `train_model.py`.
 7. Decide whether to add `LICENSE` (original had none specified; none was invented).

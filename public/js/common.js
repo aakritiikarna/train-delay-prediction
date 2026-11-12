@@ -79,6 +79,7 @@
   }
 
   async function logout() {
+    window.TT.notificationSocket?.disconnect();
     try { await api('/api/auth/logout', { method: 'POST' }); } catch { /* ignore */ }
     location.href = '/login';
   }
@@ -90,16 +91,94 @@
     const user = await currentUser();
     const here = location.pathname;
     const link = (href, label) => h('a', { href, 'aria-current': here === href ? 'page' : null }, label);
+    const notificationNav = user
+      ? h('div', { className: 'notification-nav' },
+        h('button', { className: 'notification-toggle', id: 'notificationToggle', type: 'button', 'aria-expanded': 'false', 'aria-controls': 'notificationPanel' },
+          'Notifications ', h('span', { className: 'notification-count', id: 'notificationCount', hidden: true }, '0')),
+        h('section', { className: 'notification-panel', id: 'notificationPanel', hidden: true, 'aria-label': 'Notification centre' },
+          h('div', { className: 'notification-panel-head' },
+            h('h2', {}, 'Notifications'),
+            h('button', { className: 'btn btn-secondary btn-sm', id: 'markAllNotificationsRead', type: 'button' }, 'Mark all read')),
+          h('div', { id: 'notificationList', 'aria-live': 'polite' }, h('p', { className: 'muted' }, 'Loading notifications...'))))
+      : null;
     const links = h('div', { className: 'nav-links' },
       link('/', 'Home'), link('/passenger', 'Passenger'),
       user && ['controller', 'admin'].includes(user.role) ? link('/controller', 'Controller') : null,
       user?.role === 'admin' ? link('/admin', 'Admin') : null,
       link('/contact', 'Contact'),
+      notificationNav,
       user
         ? [h('span', { className: 'nav-user' }, `${user.name} (${user.role})`), h('button', { type: 'button', onclick: logout }, 'Logout')]
         : link('/login', 'Login'));
     host.replaceChildren(h('div', { className: 'nav-inner' }, h('a', { className: 'logo', href: '/' }, '🚆 TrainTrack AI'), h('nav', { 'aria-label': 'Main' }, links)));
+    if (user) initNotifications(user);
     return user;
+  }
+
+  function safeInternalHref(href) {
+    return typeof href === 'string' && /^\/(?!\/|\\)/.test(href) ? href : null;
+  }
+
+  async function initNotifications(user) {
+    const toggle = $('#notificationToggle'), panel = $('#notificationPanel');
+    let unreadCount = 0;
+    const renderCount = (count) => {
+      unreadCount = count;
+      const badge = $('#notificationCount');
+      badge.textContent = String(count);
+      badge.hidden = count === 0;
+      toggle.setAttribute('aria-label', `Notifications, ${count} unread`);
+    };
+    const load = async () => {
+      const result = await api('/api/notifications?limit=8');
+      renderCount(result.unreadCount);
+      const list = $('#notificationList');
+      list.replaceChildren(...(result.data.length ? result.data.map((item) => {
+        const content = h('span', { className: 'notification-copy' },
+          h('strong', {}, item.title),
+          h('span', {}, item.message),
+          item.emailStatus && item.emailStatus !== 'not_requested'
+            ? h('small', {}, `Email: ${item.emailStatus === 'accepted' ? 'accepted by provider (delivery not confirmed)' : item.emailStatus}`)
+            : null);
+        const button = h('button', {
+          className: `notification-item${item.readAt ? '' : ' unread'}`,
+          type: 'button',
+          onclick: async () => {
+            if (!item.readAt) await api(`/api/notifications/${encodeURIComponent(item._id)}/read`, { method: 'PUT' });
+            const href = safeInternalHref(item.href);
+            if (href) location.href = href;
+            else await load();
+          },
+        }, content);
+        return button;
+      }) : [h('p', { className: 'muted notification-empty' }, 'You are all caught up.')]));
+    };
+    toggle.addEventListener('click', async () => {
+      panel.hidden = !panel.hidden;
+      toggle.setAttribute('aria-expanded', String(!panel.hidden));
+      if (!panel.hidden) {
+        try { await load(); } catch (error) { $('#notificationList').replaceChildren(h('p', { className: 'muted' }, error.message)); }
+      }
+    });
+    $('#markAllNotificationsRead').addEventListener('click', async () => {
+      try {
+        await api('/api/notifications/read-all', { method: 'PUT' });
+        await load();
+      } catch (error) { toast(error.message, true); }
+    });
+    try { await load(); } catch (error) { $('#notificationList').replaceChildren(h('p', { className: 'muted' }, error.message)); }
+
+    if (typeof window.io === 'function') {
+      const socket = window.TT.notificationSocket || window.io();
+      window.TT.notificationSocket = socket;
+      socket.on('notification:new', (notification) => {
+        renderCount(unreadCount + (notification.readAt ? 0 : 1));
+        if (!panel.hidden) load().catch((error) => toast(error.message, true));
+      });
+      if (user.role === 'admin') socket.on('admin:notification-count', () => {
+        if (!panel.hidden) load().catch((error) => toast(error.message, true));
+      });
+    }
   }
 
   /** Staff pages call this: bounce to login if the session expired mid-use. */
@@ -109,5 +188,5 @@
   }
 
   window.TT = { $, h, api, ApiError, toast, debounce, downloadCSV, badge, emptyRow, initNav, handleAuthError, currentUser };
-  document.addEventListener('DOMContentLoaded', () => { window.TT.ready = initNav(); });
+  window.TT.ready = initNav();
 })();

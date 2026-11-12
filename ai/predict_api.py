@@ -94,7 +94,7 @@ def create_app(model_dir: Path | None = None, api_key: str | None = None) -> Fla
 
     @app.get("/health")
     def health():
-        return jsonify(status="ok", model_version=meta["version"])
+        return jsonify(status="ok", model_available=True, model_version=meta["version"])
 
     @app.get("/model-info")
     def model_info():

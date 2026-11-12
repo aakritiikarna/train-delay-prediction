@@ -11,6 +11,14 @@ const UserSchema = new mongoose.Schema(
     passwordHash: { type: String, select: false },
     role: { type: String, enum: ROLES, default: 'passenger', index: true },
     active: { type: Boolean, default: true },
+    emailVerified: { type: Boolean, default: false },
+    sessionVersion: { type: Number, default: 0 },
+    preferences: {
+      inAppDisruptions: { type: Boolean, default: true },
+      inAppScheduleUpdates: { type: Boolean, default: true },
+      disruptionEmails: { type: Boolean, default: false },
+      scheduleEmails: { type: Boolean, default: false },
+    },
     lastLoginAt: Date,
   },
   {

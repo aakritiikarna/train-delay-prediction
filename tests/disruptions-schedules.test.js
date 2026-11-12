@@ -79,6 +79,17 @@ describe('disruptions', () => {
     const got = new Promise((r) => client.once('new-disruption', r));
     await controller.post('/api/disruptions').send({ ...valid, trainId: 'TR-LIVE' }).expect(201);
     assert.equal((await got).trainId, 'TR-LIVE');
+    const scheduleEvent = new Promise((r) => client.once('scheduleCreated', r));
+    const { body: schedule } = await controller.post('/api/schedules').send({
+      trainId: 'TR-SOCKET', line: 'Line C', scheduledDate: '2026-11-12', scheduledTime: '12:30',
+    }).expect(201);
+    assert.equal((await scheduleEvent).trainId, 'TR-SOCKET');
+    const updateEvent = new Promise((r) => client.once('scheduleUpdated', r));
+    await controller.put(`/api/schedules/${schedule._id}`).send({ status: 'Departed' }).expect(200);
+    assert.equal((await updateEvent).status, 'Departed');
+    const deleteEvent = new Promise((r) => client.once('scheduleDeleted', r));
+    await admin.delete(`/api/schedules/${schedule._id}`).expect(200);
+    assert.equal(String((await deleteEvent)._id), schedule._id);
     client.close();
   });
 });
@@ -87,9 +98,11 @@ describe('schedules', () => {
   const sched = { trainId: 'TR-100', line: 'Line A', scheduledTime: '08:15', scheduledDeparture: '08:15', scheduledArrival: '10:30', destination: 'North', driver: 'Jo', status: 'On Time' };
 
   test('create + update with validation of time format, status enum and delay range', async () => {
-    const { body: s } = await controller.post('/api/schedules').send(sched).expect(201);
+    const { body: s } = await controller.post('/api/schedules').send({ ...sched, scheduledDate: '2026-11-12' }).expect(201);
+    assert.equal(s.scheduledDate, '2026-11-12');
     const ok = await controller.put(`/api/schedules/${s._id}`).send({ actualTime: '08:40', delay: 25, status: 'Delayed' }).expect(200);
     assert.equal(ok.body.delay, 25);
+    await controller.put(`/api/schedules/${s._id}`).send({ scheduledDate: '2026-02-30' }).expect(400);
     await controller.put(`/api/schedules/${s._id}`).send({ actualTime: '25:99' }).expect(400);
     await controller.put(`/api/schedules/${s._id}`).send({ status: 'Teleported' }).expect(400);
     await controller.put(`/api/schedules/${s._id}`).send({ delay: -1 }).expect(400);

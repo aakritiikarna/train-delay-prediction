@@ -1,7 +1,7 @@
 'use strict';
 const { test, before, after, describe } = require('node:test');
 const assert = require('node:assert/strict');
-const { setup, teardown, startFakeMl, request } = require('./helpers');
+const { setup, teardown, startFakeMl, request, loginAs } = require('./helpers');
 const Disruption = require('../models/Disruption');
 const Schedule = require('../models/Schedule');
 const HistoricalDelay = require('../models/HistoricalDelay');
@@ -12,6 +12,13 @@ describe('POST /api/predictions', () => {
   let ctx, ml, mode = 'ok';
   before(async () => {
     ml = await startFakeMl((req, res) => {
+      if (req.url === '/model-info') {
+        return res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({
+          version: 'v-test', trained_at: '2026-01-01T00:00:00Z',
+          metrics: { mae: 10, rmse: 15, r2: 0.8, baseline_median_mae: 20, test_rows: 3 },
+          categories: {}, distance_range_km: [0, 100],
+        }));
+      }
       if (mode === 'error') return res.writeHead(500).end('boom');
       if (mode === 'slow') return; // never answers -> client timeout
       res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ predicted_delay: 42.5, warnings: ['demo'], model_version: 'v-test' }));
@@ -42,6 +49,23 @@ describe('POST /api/predictions', () => {
     const res = await request(ctx.app).post('/api/predictions').send(input).expect(503);
     assert.match(res.body.error, /unavailable/i);
     mode = 'ok';
+  });
+
+  test('signed-in predictions are persisted privately with exact inputs and model version', async () => {
+    const { agent, user } = await loginAs(ctx.app, 'passenger');
+    await agent.post('/api/predictions').send(input).expect(200);
+    const history = await agent.get('/api/analytics/predictions/history').expect(200);
+    assert.equal(history.body.data.length, 1);
+    assert.deepEqual(history.body.data[0].inputs, input);
+    assert.equal(history.body.data[0].modelVersion, 'v-test');
+    await request(ctx.app).get('/api/analytics/predictions/history').set('Authorization', 'Bearer invalid-token').expect(401);
+    assert.equal(String(history.body.data[0].user), String(user._id));
+  });
+
+  test('model metadata endpoint returns offline evaluation and operational-accuracy caveat', async () => {
+    const { body } = await request(ctx.app).get('/api/analytics/model').expect(200);
+    assert.equal(body.version, 'v-test');
+    assert.match(body.evaluationDisclaimer, /not operational accuracy/i);
   });
 });
 
@@ -107,5 +131,14 @@ describe('stats and analytics', () => {
     const w = (await request(ctx.app).get('/api/analytics/historical?groupBy=weather').expect(200)).body;
     assert.deepEqual(w.data, [{ label: 'Clear', avgDelay: 15, count: 2 }, { label: 'Rainy', avgDelay: 40, count: 1 }]);
     await request(ctx.app).get('/api/analytics/historical?groupBy=$where').expect(400);
+  });
+
+  test('map endpoint labels source records and contains no fabricated coordinates', async () => {
+    await Schedule.create({ trainId: 'TR-MAP', line: 'Recorded Line', destination: 'Recorded destination' });
+    const { body } = await request(ctx.app).get('/api/map/overview').expect(200);
+    assert.match(body.dataSource, /simulated/i);
+    assert.equal(body.trains[0].trainId, 'TR-MAP');
+    assert.equal(Object.hasOwn(body.trains[0], 'latitude'), false);
+    assert.equal(Object.hasOwn(body.trains[0], 'longitude'), false);
   });
 });

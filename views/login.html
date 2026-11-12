@@ -22,6 +22,7 @@
         <div class="field"><label for="lEmail">Email</label><input id="lEmail" type="email" autocomplete="username" required></div>
         <div class="field"><label for="lPassword">Password</label><input id="lPassword" type="password" autocomplete="current-password" required></div>
         <button class="btn btn-block" type="submit">Login</button>
+        <button class="text-button" id="showReset" type="button">Forgot password?</button>
       </form>
 
       <form id="registerForm" role="tabpanel" aria-labelledby="tabRegister" hidden novalidate>
@@ -30,10 +31,23 @@
         <div class="field"><label for="rPassword">Password</label><input id="rPassword" type="password" autocomplete="new-password" required minlength="8" maxlength="72"><div class="hint">At least 8 characters. New accounts are passenger accounts; staff roles are granted by an administrator.</div></div>
         <button class="btn btn-block" type="submit">Create account</button>
       </form>
+      <form id="requestResetForm" hidden novalidate>
+        <h2>Reset password</h2>
+        <p class="hint">Enter your account email. If it exists, reset instructions will be sent.</p>
+        <div class="field"><label for="resetEmail">Email</label><input id="resetEmail" type="email" autocomplete="email" required></div>
+        <button class="btn btn-block" type="submit">Send reset instructions</button>
+        <button class="text-button" id="backToLogin" type="button">Back to login</button>
+      </form>
+      <form id="completeResetForm" hidden novalidate>
+        <h2>Choose a new password</h2>
+        <div class="field"><label for="newPassword">New password</label><input id="newPassword" type="password" autocomplete="new-password" minlength="8" maxlength="72" required></div>
+        <button class="btn btn-block" type="submit">Update password</button>
+      </form>
       <div id="authMsg" class="form-msg" role="alert" aria-live="assertive"></div>
     </div>
   </main>
   <footer>© 2026 TrainTrack AI</footer>
+  <script src="/socket.io/socket.io.js"></script>
   <script src="/js/common.js"></script>
   <script src="/js/login.js"></script>
 </body>

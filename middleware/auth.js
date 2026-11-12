@@ -17,7 +17,7 @@ function extractToken(req) {
  * instead of waiting for the token to expire.
  */
 function createAuth(env) {
-  const sign = (user) => jwt.sign({ sub: String(user._id) }, env.JWT_SECRET, {
+  const sign = (user) => jwt.sign({ sub: String(user._id), ver: user.sessionVersion || 0 }, env.JWT_SECRET, {
     algorithm: 'HS256', expiresIn: env.JWT_EXPIRES_IN,
   });
 
@@ -34,7 +34,8 @@ function createAuth(env) {
     if (!token) return null;
     const payload = jwt.verify(token, env.JWT_SECRET, { algorithms: ['HS256'] });
     const user = await User.findById(payload.sub);
-    return user && user.active ? user : null;
+    if (!user || !user.active || (payload.ver ?? 0) !== (user.sessionVersion || 0)) return null;
+    return user;
   }
 
   const requireAuth = async (req, _res, next) => {
@@ -45,6 +46,18 @@ function createAuth(env) {
       next();
     } catch (err) {
       next(err);
+    }
+  };
+
+  const optionalAuth = async (req, _res, next) => {
+    try {
+      req.user = await loadUser(req);
+      next();
+    } catch (err) {
+      if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError') {
+        req.user = null;
+        next();
+      } else next(err);
     }
   };
 
@@ -65,7 +78,7 @@ function createAuth(env) {
     }
   };
 
-  return { sign, cookieOptions, COOKIE, requireAuth, requireRole, pageGuard };
+  return { sign, cookieOptions, COOKIE, requireAuth, optionalAuth, requireRole, pageGuard };
 }
 
 module.exports = createAuth;

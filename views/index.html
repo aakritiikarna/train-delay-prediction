@@ -3,28 +3,175 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Home - TrainTrack AI</title>
-  <meta name="description" content="TrainTrack AI: live train disruptions, schedules and machine-learning delay predictions.">
+  <title>TrainTrack AI — A clearer view of every journey</title>
+  <meta name="description" content="TrainTrack AI connects train delay predictions, service disruption alerts and railway operations in one platform.">
+  <meta name="theme-color" content="#080f1d">
   <link rel="stylesheet" href="/style.css">
 </head>
-<body>
+<body class="landing-page">
   <a class="skip-link" href="#main">Skip to content</a>
-  <header class="site-nav" id="siteNav"></header>
+  <header class="site-nav cinematic-header" id="siteNav"></header>
   <main id="main">
-    <section class="hero">
-      <h1>TrainTrack AI</h1>
-      <p>Live disruption alerts, dispatch scheduling, and machine-learning delay predictions for passengers and controllers.</p>
-      <a href="/passenger" class="btn">Passenger Dashboard</a>
-      <a href="/controller" class="btn btn-secondary">Controller Dashboard</a>
+    <section class="cinematic-hero" aria-labelledby="heroTitle">
+      <div class="hero-scene" id="trainScene">
+        <canvas id="trainCanvas" role="img" aria-label="Interactive 3D illustration of a modern passenger train on railway tracks"></canvas>
+        <div class="scene-loader" id="sceneLoader" role="status" aria-live="polite">
+          <span class="loader-orbit" aria-hidden="true"></span>
+          <span id="loaderMessage">Preparing the train scene</span>
+          <progress id="modelProgress" max="1" value="0" aria-label="3D model loading progress"></progress>
+        </div>
+        <div class="scene-fallback" id="sceneFallback" hidden>
+          <svg viewBox="0 0 760 300" role="img" aria-label="Illustration of a passenger train on railway tracks">
+            <defs>
+              <linearGradient id="fallbackBody" x1="0" x2="1" y1="0" y2="1">
+                <stop offset="0" stop-color="#f0f5fb"/>
+                <stop offset=".58" stop-color="#b7c5d5"/>
+                <stop offset="1" stop-color="#71849a"/>
+              </linearGradient>
+              <linearGradient id="fallbackWindow" x1="0" x2="0" y1="0" y2="1">
+                <stop offset="0" stop-color="#66d9f4" stop-opacity=".85"/>
+                <stop offset="1" stop-color="#172b47"/>
+              </linearGradient>
+              <filter id="fallbackGlow" x="-100%" y="-100%" width="300%" height="300%">
+                <feGaussianBlur stdDeviation="9"/>
+              </filter>
+            </defs>
+            <ellipse cx="414" cy="248" rx="300" ry="17" fill="#02060d" opacity=".8"/>
+            <path d="M75 85h430q46 0 74 34l48 58v45H70V99q0-14 5-14Z" fill="url(#fallbackBody)" stroke="#eff8ff" stroke-opacity=".5" stroke-width="2"/>
+            <path d="M504 92q35 4 58 34l38 45H516V92Z" fill="url(#fallbackWindow)" stroke="#8bdff1" stroke-opacity=".55" stroke-width="2"/>
+            <path d="M99 104h388v64H99z" fill="url(#fallbackWindow)" stroke="#eaf7ff" stroke-opacity=".75" stroke-width="5"/>
+            <path d="M98 177h491v10H98z" fill="#3b82f6"/>
+            <path d="M87 204h548v15H87z" fill="#24364d"/>
+            <path d="M70 230h587M130 244h475" fill="none" stroke="#71839a" stroke-width="7" stroke-linecap="round"/>
+            <path d="M128 225v21m69-21v21m69-21v21m69-21v21m69-21v21m69-21v21m69-21v21" stroke="#53647b" stroke-width="9"/>
+            <circle cx="168" cy="210" r="22" fill="#111c2c" stroke="#aab9ca" stroke-width="7"/>
+            <circle cx="390" cy="210" r="22" fill="#111c2c" stroke="#aab9ca" stroke-width="7"/>
+            <circle cx="566" cy="210" r="22" fill="#111c2c" stroke="#aab9ca" stroke-width="7"/>
+            <circle cx="634" cy="173" r="24" fill="#d9faff" opacity=".4" filter="url(#fallbackGlow)"/>
+            <circle cx="634" cy="173" r="8" fill="#f3fdff"/>
+          </svg>
+          <p id="fallbackMessage">Your browser cannot display the interactive 3D scene. The rest of the platform is ready.</p>
+        </div>
+        <p class="scene-caption">A cinematic 3D illustration — not live train tracking.</p>
+        <div class="scene-vignette" aria-hidden="true"></div>
+      </div>
+
+      <div class="hero-copy">
+        <p class="eyebrow"><span class="eyebrow-mark" aria-hidden="true"></span> Intelligent railway operations</p>
+        <h1 id="heroTitle">A clearer view<br>of every <span>journey.</span></h1>
+        <p class="hero-description">Bring delay estimates, service alerts and railway operations into one considered view.</p>
+        <div class="hero-actions">
+          <a class="btn" href="#platform">Explore the platform <span aria-hidden="true">↓</span></a>
+          <a class="btn btn-secondary" href="/passenger">Open passenger dashboard <span aria-hidden="true">↗</span></a>
+        </div>
+        <p class="hero-note">Model-based estimates. Live operational updates. One connected workspace.</p>
+      </div>
+      <a class="scroll-cue" href="#platform" aria-label="Scroll to explore TrainTrack AI">
+        <span class="scroll-cue-line" aria-hidden="true"></span>
+        <span>Scroll to explore</span>
+      </a>
     </section>
-    <section class="feature-cards" aria-label="Features">
-      <article class="card"><h3>Delay Prediction</h3><p>A CatBoost model trained on historical delays estimates journey delay from distance, weather, congestion, train type and time.</p></article>
-      <article class="card"><h3>Real-time Alerts</h3><p>Disruptions logged by controllers are pushed instantly to every open dashboard over WebSockets.</p></article>
-      <article class="card"><h3>Dispatch Scheduling</h3><p>Controllers update departures, delays and status; passengers see changes live.</p></article>
-      <article class="card"><h3>Role-based Access</h3><p>Passengers, controllers and admins each get exactly the permissions they need, enforced on the server.</p></article>
+
+    <section class="landing-section platform-section" id="platform" aria-labelledby="platformTitle">
+      <div class="section-intro reveal">
+        <p class="eyebrow">One connected platform</p>
+        <h2 id="platformTitle">From a prediction to a better-informed operation.</h2>
+        <p>Tools for passengers and railway teams, connected through the existing TrainTrack AI services.</p>
+      </div>
+      <div class="capability-grid">
+        <article class="landing-card reveal">
+          <span class="capability-index">01 / PREDICT</span>
+          <div class="capability-icon" aria-hidden="true">↗</div>
+          <h3>Intelligent Railway Prediction</h3>
+          <p>Estimate journey delay with the CatBoost model using distance, weather, train type, time, day and congestion inputs.</p>
+          <a href="/passenger" class="text-link">Try the passenger dashboard <span aria-hidden="true">→</span></a>
+        </article>
+        <article class="landing-card reveal">
+          <span class="capability-index">02 / MONITOR</span>
+          <div class="capability-icon" aria-hidden="true">⌁</div>
+          <h3>Real-Time Train Monitoring</h3>
+          <p>See reported disruptions and schedule changes. Controller updates are shared with open dashboards over Socket.IO.</p>
+          <a href="/login?next=%2Fcontroller" class="text-link">Controller access <span aria-hidden="true">→</span></a>
+        </article>
+        <article class="landing-card reveal">
+          <span class="capability-index">03 / UNDERSTAND</span>
+          <div class="capability-icon" aria-hidden="true">▥</div>
+          <h3>Delay Analytics</h3>
+          <p>Review disruption summaries and historical delay patterns when historical dataset records are available.</p>
+          <a href="/passenger" class="text-link">Explore dashboard data <span aria-hidden="true">→</span></a>
+        </article>
+        <article class="landing-card reveal">
+          <span class="capability-index">04 / COORDINATE</span>
+          <div class="capability-icon" aria-hidden="true">⇄</div>
+          <h3>Railway Operations Management</h3>
+          <p>Authorized controllers can log disruptions, resolve incidents and update schedules from one operations dashboard.</p>
+          <a href="/login?next=%2Fcontroller" class="text-link">Sign in for operations <span aria-hidden="true">→</span></a>
+        </article>
+      </div>
+    </section>
+
+    <section class="workflow-section landing-section" aria-labelledby="workflowTitle">
+      <div class="workflow-copy reveal">
+        <p class="eyebrow">How it works</p>
+        <h2 id="workflowTitle">Operational context, made useful.</h2>
+        <p>TrainTrack AI brings together the information already used across its dashboards—without presenting the illustrative 3D scene as a live map.</p>
+      </div>
+      <ol class="workflow-list">
+        <li class="workflow-step reveal">
+          <span class="workflow-number">01</span>
+          <div><h3>Bring in service context</h3><p>Schedules and reported disruptions are stored by the application and displayed in the relevant dashboards.</p></div>
+        </li>
+        <li class="workflow-step reveal">
+          <span class="workflow-number">02</span>
+          <div><h3>Request a model estimate</h3><p>Passenger inputs are sent through the Node API to the Python prediction service and its CatBoost model.</p></div>
+        </li>
+        <li class="workflow-step reveal">
+          <span class="workflow-number">03</span>
+          <div><h3>Share operational changes</h3><p>Controller updates are broadcast to connected dashboards so users can see the latest reported status.</p></div>
+        </li>
+      </ol>
+    </section>
+
+    <section class="technology-section landing-section" aria-labelledby="technologyTitle">
+      <div class="technology-heading reveal">
+        <p class="eyebrow">Built for a connected workflow</p>
+        <h2 id="technologyTitle">A focused stack. Clear responsibilities.</h2>
+      </div>
+      <div class="technology-grid">
+        <article class="technology-item reveal"><span class="technology-symbol">01</span><h3>Express &amp; Node.js</h3><p>Application routes, authentication and service APIs.</p></article>
+        <article class="technology-item reveal"><span class="technology-symbol">02</span><h3>MongoDB</h3><p>Schedules, disruptions, user accounts and operational records.</p></article>
+        <article class="technology-item reveal"><span class="technology-symbol">03</span><h3>Python &amp; CatBoost</h3><p>A separate prediction service for model-based delay estimates.</p></article>
+        <article class="technology-item reveal"><span class="technology-symbol">04</span><h3>Socket.IO</h3><p>Broadcasts reported disruption and schedule changes to dashboards.</p></article>
+      </div>
+    </section>
+
+    <section class="get-started-section landing-section reveal" aria-labelledby="getStartedTitle">
+      <div>
+        <p class="eyebrow">Your next journey starts here</p>
+        <h2 id="getStartedTitle">See the service from your point of view.</h2>
+        <p>Explore passenger information or sign in to access your authorized workspace.</p>
+      </div>
+      <div class="get-started-actions">
+        <a class="btn" href="/passenger">Open passenger dashboard <span aria-hidden="true">↗</span></a>
+        <a class="btn btn-secondary" href="/login">Sign in to TrainTrack AI</a>
+      </div>
     </section>
   </main>
-  <footer>© 2026 TrainTrack AI</footer>
+  <footer class="landing-footer">
+    <a class="footer-brand" href="/">TrainTrack <span>AI</span></a>
+    <p>Operational awareness for a more informed railway journey.</p>
+    <nav aria-label="Footer navigation">
+      <a href="#platform">Platform</a>
+      <a href="/passenger">Passenger</a>
+      <a href="/contact">Contact</a>
+      <a href="/login">Sign in</a>
+    </nav>
+    <small>© 2026 TrainTrack AI</small>
+  </footer>
+  <script src="/socket.io/socket.io.js"></script>
   <script src="/js/common.js"></script>
+  <script src="/vendor/gsap.min.js"></script>
+  <script src="/vendor/ScrollTrigger.min.js"></script>
+  <script type="module" src="/js/landing.mjs"></script>
 </body>
 </html>

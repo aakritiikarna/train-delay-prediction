@@ -1,6 +1,6 @@
 {
-  "version": "catboost-20261103",
-  "trained_at": "2026-11-03T03:38:40+00:00",
+  "version": "catboost-20261112",
+  "trained_at": "2026-11-12T05:50:13+00:00",
   "features": [
     "Distance Between Stations (km)",
     "Weather Conditions",
@@ -46,11 +46,51 @@
     955.0
   ],
   "metrics": {
-    "mae": 27.49,
-    "rmse": 40.73,
-    "r2": 0.958,
-    "baseline_median_mae": 83.83,
-    "test_rows": 492,
-    "train_rows": 1964
+    "mae": 25.28,
+    "rmse": 38.83,
+    "r2": 0.966,
+    "baseline_median_mae": 90.03,
+    "baseline_median_rmse": 220.69,
+    "baseline_mean_mae": 117.67,
+    "baseline_mean_rmse": 210.95,
+    "test_rows": 500,
+    "train_rows": 1956
+  },
+  "evaluation": {
+    "split": "grouped holdout by identical feature values; 80/20 target",
+    "seed": 42,
+    "time_based_split": {
+      "status": "not_evaluable",
+      "reason": "The dataset contains no timestamp or date column."
+    },
+    "route_based_split": {
+      "status": "not_evaluable",
+      "reason": "The dataset contains no route, trip, or service identifier."
+    },
+    "feature_group_leakage_check": {
+      "status": "passed",
+      "feature_groups_in_both_partitions": 0,
+      "feature_groups_with_conflicting_targets": 444
+    }
+  },
+  "dataset": {
+    "source_file": "train_delays.csv",
+    "sha256": "27ad101e88a51ce3781fab2e4589e284ee5ea38bb336b30d12fec9ba16de1370",
+    "provenance": "Unknown; supplied with this repository and not independently verified.",
+    "rows_in_source": 2878,
+    "rows_after_missing_values_and_exact_duplicates": 2456,
+    "exact_duplicate_rows_removed": 422,
+    "missing_rows_removed": 0,
+    "missing_values_in_required_columns": 0,
+    "target_min": 0.0,
+    "target_max": 1230.0,
+    "timestamp_columns": [],
+    "route_identifier_columns": [],
+    "limitations": [
+      "The dataset has unknown provenance and likely demo/synthetic characteristics.",
+      "Repeated feature combinations have conflicting target values.",
+      "No time-based or route-based holdout can be evaluated without timestamps or route identifiers.",
+      "Offline test metrics are not evidence of real-world operational accuracy."
+    ]
   }
 }

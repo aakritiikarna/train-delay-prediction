@@ -77,11 +77,11 @@ describe('sessions', () => {
     await agent.post('/api/auth/login').send({ email: user.email, password: PASSWORD }).expect(200);
     const me = await agent.get('/api/auth/me').expect(200);
     assert.equal(me.body.user.role, 'controller');
+    const token = jwt.sign({ sub: String(user._id), ver: user.sessionVersion || 0 }, ctx.env.JWT_SECRET, { expiresIn: '1h' });
+    await request(ctx.app).get('/api/auth/me').set('Authorization', `Bearer ${token}`).expect(200);
     await agent.post('/api/auth/logout').expect(200);
     await agent.get('/api/auth/me').expect(401);
-
-    const token = jwt.sign({ sub: String(user._id) }, ctx.env.JWT_SECRET, { expiresIn: '1h' });
-    await request(ctx.app).get('/api/auth/me').set('Authorization', `Bearer ${token}`).expect(200);
+    await request(ctx.app).get('/api/auth/me').set('Authorization', `Bearer ${token}`).expect(401);
   });
 
   test('rejects tampered, expired, unsigned and wrong-secret tokens', async () => {

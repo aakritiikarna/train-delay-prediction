@@ -5,6 +5,8 @@ venv/
 .env.*
 !.env.example
 catboost_info/
+/ai/model.pkl
+/ai/encoders.pkl
 __pycache__/
 *.py[cod]
 .pytest_cache/

@@ -7,7 +7,7 @@ const schemas = require('../validation/schemas');
 const { audit } = require('../services/audit');
 const { searchFilter, paginate, pageMeta } = require('../utils/helpers');
 
-module.exports = function disruptionRoutes({ auth }) {
+module.exports = function disruptionRoutes({ auth, notifications }) {
   const router = express.Router();
   const staff = auth.requireRole('controller', 'admin');
 
@@ -28,8 +28,17 @@ module.exports = function disruptionRoutes({ auth }) {
   router.post('/', staff, validate({ body: schemas.disruptions.create }), async (req, res) => {
     const doc = await Disruption.create({ ...req.valid.body, reportedBy: req.user._id });
     req.app.get('io').emit('new-disruption', doc); // real-time alert to all dashboards
+    const notificationDelivery = await notifications.notifyUsersWithPreference({
+      preference: 'inAppDisruptions',
+      emailPreference: 'disruptionEmails',
+      type: 'disruption',
+      title: `Train ${doc.trainId} disruption`,
+      message: `${doc.line}: ${doc.cause} (${doc.delay} min delay).`,
+      href: '/passenger#railway-map',
+      emailTemplate: 'disruption-alert',
+    }, `disruption:${doc._id}`);
     await audit(req, 'disruption.created', 'Disruption', doc._id, { trainId: doc.trainId, line: doc.line });
-    res.status(201).json(doc);
+    res.status(201).json({ ...doc.toJSON(), notificationDelivery });
   });
 
   router.put('/:id/resolve', staff, validate({ params: schemas.idParams }), async (req, res) => {

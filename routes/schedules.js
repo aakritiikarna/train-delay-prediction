@@ -7,7 +7,7 @@ const schemas = require('../validation/schemas');
 const { audit } = require('../services/audit');
 const { searchFilter, paginate, pageMeta } = require('../utils/helpers');
 
-module.exports = function scheduleRoutes({ auth }) {
+module.exports = function scheduleRoutes({ auth, notifications }) {
   const router = express.Router();
   const staff = auth.requireRole('controller', 'admin');
 
@@ -28,8 +28,17 @@ module.exports = function scheduleRoutes({ auth }) {
   router.post('/', staff, validate({ body: schemas.schedules.create }), async (req, res) => {
     const doc = await Schedule.create(req.valid.body);
     req.app.get('io').emit('scheduleCreated', doc);
+    const notificationDelivery = await notifications.notifyUsersWithPreference({
+      preference: 'inAppScheduleUpdates',
+      emailPreference: 'scheduleEmails',
+      type: 'schedule',
+      title: `Schedule added for train ${doc.trainId}`,
+      message: `${doc.line}${doc.destination ? ` to ${doc.destination}` : ''} is now listed.`,
+      href: '/passenger',
+      emailTemplate: 'schedule-update',
+    }, `schedule-created:${doc._id}`);
     await audit(req, 'schedule.created', 'Schedule', doc._id, { trainId: doc.trainId });
-    res.status(201).json(doc);
+    res.status(201).json({ ...doc.toJSON(), notificationDelivery });
   });
 
   router.put('/:id', staff, validate({ params: schemas.idParams, body: schemas.schedules.update }), async (req, res) => {
@@ -39,8 +48,17 @@ module.exports = function scheduleRoutes({ auth }) {
     });
     if (!doc) throw new HttpError(404, 'Schedule not found');
     req.app.get('io').emit('scheduleUpdated', doc);
+    const notificationDelivery = await notifications.notifyUsersWithPreference({
+      preference: 'inAppScheduleUpdates',
+      emailPreference: 'scheduleEmails',
+      type: 'schedule',
+      title: `Schedule changed for train ${doc.trainId}`,
+      message: `${doc.line} schedule details were updated.`,
+      href: '/passenger',
+      emailTemplate: 'schedule-update',
+    }, `schedule-updated:${doc._id}:${doc.updatedAt?.toISOString() || 'unknown'}`);
     await audit(req, 'schedule.updated', 'Schedule', doc._id, req.valid.body);
-    res.json(doc);
+    res.json({ ...doc.toJSON(), notificationDelivery });
   });
 
   router.delete('/:id', ...auth.requireRole('admin'), validate({ params: schemas.idParams }), async (req, res) => {

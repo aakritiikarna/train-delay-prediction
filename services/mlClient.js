@@ -41,7 +41,34 @@ function createMlClient(env) {
     }
   }
 
-  return { predict, health };
+  async function diagnostics() {
+    try {
+      const res = await fetch(`${env.ML_SERVICE_URL}/health`, { signal: AbortSignal.timeout(3000) });
+      if (!res.ok) return { flask: 'unavailable', catboost: 'unknown' };
+      const data = await res.json();
+      return {
+        flask: 'reachable',
+        catboost: data.model_available === true ? 'available' : data.model_available === false ? 'unavailable' : 'unknown',
+      };
+    } catch {
+      return { flask: 'unavailable', catboost: 'unknown' };
+    }
+  }
+
+  async function modelInfo() {
+    let res;
+    try {
+      res = await fetch(`${env.ML_SERVICE_URL}/model-info`, {
+        signal: AbortSignal.timeout(env.ML_TIMEOUT_MS),
+      });
+    } catch {
+      throw new HttpError(503, 'Model metadata is unavailable right now.');
+    }
+    if (!res.ok) throw new HttpError(502, 'Prediction service returned an error while loading model metadata');
+    return res.json();
+  }
+
+  return { predict, health, diagnostics, modelInfo };
 }
 
 module.exports = createMlClient;

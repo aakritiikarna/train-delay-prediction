@@ -25,10 +25,31 @@
         <div class="stat-card"><div class="label">Resolved (7 days)</div><div class="value" id="statResolved">--</div><div class="sub">Disruptions cleared</div></div>
       </section>
 
+      <section class="card stack" id="railway-map" aria-labelledby="mapTitle">
+        <div class="card-head">
+          <div><h2 id="mapTitle">Interactive Railway Map</h2><p class="hint">Schematic view only. Train positions are simulated; no live GPS or external railway feed is connected.</p></div>
+          <span class="badge badge-yellow" id="mapStatus">Loading recorded schedules...</span>
+        </div>
+        <div class="map-toolbar">
+          <label class="sr-only" for="mapRouteFilter">Filter map by route</label>
+          <select id="mapRouteFilter"><option value="">All routes</option></select>
+          <label class="sr-only" for="mapSearch">Search routes and trains on the map</label>
+          <input id="mapSearch" type="search" placeholder="Search train or route...">
+          <button class="btn btn-secondary" type="button" id="mapRefresh">Refresh map data</button>
+        </div>
+        <svg id="railwayMap" class="railway-map" role="img" aria-label="Schematic railway network"></svg>
+        <div class="map-legend" aria-label="Map legend">
+          <span><i class="legend-dot"></i>Illustrative station node</span>
+          <span><i class="legend-dot train"></i>Simulated train</span>
+          <span><i class="legend-dot disruption"></i>Recorded active disruption</span>
+        </div>
+        <div class="map-detail" id="mapDetail" aria-live="polite"><p class="muted">Select a route, node, train, or disruption for details.</p></div>
+      </section>
+
       <div class="grid-2">
         <section class="card" aria-labelledby="alertsTitle">
           <h2 id="alertsTitle">Live Disruption Alerts</h2>
-          <div id="alertsList" aria-live="polite"><p class="muted">Loading alerts...</p></div>
+          <div id="alertsList" aria-live="polite"><p class="muted loading-state">Loading alerts...</p></div>
         </section>
 
         <section class="card" aria-labelledby="predTitle">
@@ -54,6 +75,7 @@
             <div class="delay-label">Predicted delay (minutes)</div>
             <div class="delay-context" id="delayContext"></div>
             <div class="warn" id="delayWarn"></div>
+            <div class="explain-inputs" id="predictionInputs" aria-label="Prediction inputs used"></div>
           </div>
         </section>
       </div>
@@ -84,6 +106,67 @@
         </section>
       </div>
 
+      <div class="grid-2">
+        <section class="card" aria-labelledby="modelReportTitle">
+          <h2 id="modelReportTitle">Model evaluation & metadata</h2>
+          <div id="modelReport"><p class="muted">Loading model report...</p></div>
+        </section>
+        <section class="card" aria-labelledby="routeCompareTitle">
+          <h2 id="routeCompareTitle">Recorded route comparison</h2>
+          <div class="table-wrap"><table>
+            <caption class="sr-only">Recorded schedule and disruption comparison by route</caption>
+            <thead><tr><th scope="col">Route</th><th scope="col">Trains</th><th scope="col">Avg delay</th><th scope="col">Active disruptions</th></tr></thead>
+            <tbody id="routeCompareBody"><tr><td class="empty loading-state" colspan="4">Loading route data...</td></tr></tbody>
+          </table></div>
+        </section>
+      </div>
+
+      <div class="grid-2">
+        <section class="card" aria-labelledby="predictionHistoryTitle">
+          <h2 id="predictionHistoryTitle">My prediction history</h2>
+          <div id="predictionHistorySummary" class="hint" aria-live="polite"></div>
+          <div class="table-wrap"><table>
+            <caption class="sr-only">Your past delay predictions</caption>
+            <thead><tr><th scope="col">When</th><th scope="col">Inputs</th><th scope="col">Prediction</th><th scope="col">Model</th></tr></thead>
+            <tbody id="predictionHistoryBody"><tr><td class="empty loading-state" colspan="4">Loading prediction history...</td></tr></tbody>
+          </table></div>
+          <p class="hint">Saved only for signed-in users; guest predictions are not stored.</p>
+        </section>
+        <section class="card" aria-labelledby="trainReportTitle">
+          <h2 id="trainReportTitle">Train performance report</h2>
+          <div class="table-wrap"><table>
+            <caption class="sr-only">Recent train performance records</caption>
+            <thead><tr><th scope="col">Train</th><th scope="col">Route</th><th scope="col">Avg delay</th><th scope="col">On-time records</th></tr></thead>
+            <tbody id="trainPerformanceBody"><tr><td class="empty loading-state" colspan="4">Loading train reports...</td></tr></tbody>
+          </table></div>
+        </section>
+      </div>
+
+      <section class="card stack" id="accountSecurity" aria-labelledby="accountSecurityTitle">
+        <h2 id="accountSecurityTitle">Account security</h2>
+        <form id="changePasswordForm" class="form-grid" novalidate>
+          <div class="field"><label for="currentPassword">Current password</label><input id="currentPassword" type="password" autocomplete="current-password" required maxlength="72"></div>
+          <div class="field"><label for="changedPassword">New password</label><input id="changedPassword" type="password" autocomplete="new-password" minlength="8" maxlength="72" required></div>
+          <div class="field"><button class="btn btn-secondary" type="submit">Change password</button></div>
+        </form>
+        <p class="form-msg" id="passwordChangeMsg" role="status" aria-live="polite"></p>
+      </section>
+
+      <section class="card stack" id="notificationPreferences" aria-labelledby="preferencesTitle">
+        <h2 id="preferencesTitle">Notification preferences</h2>
+        <p class="hint">Security notifications are mandatory and cannot be disabled. Email is sent only when configured and provider-accepted; delivery is not confirmed.</p>
+        <form id="preferencesForm">
+          <div class="preference-grid">
+            <label><input type="checkbox" id="prefInAppDisruptions"> In-app disruption alerts</label>
+            <label><input type="checkbox" id="prefInAppSchedules"> In-app schedule updates</label>
+            <label><input type="checkbox" id="prefEmailDisruptions"> Email disruption alerts</label>
+            <label><input type="checkbox" id="prefEmailSchedules"> Email schedule updates</label>
+          </div>
+          <button class="btn btn-secondary" type="submit">Save preferences</button>
+          <p class="form-msg" id="preferencesMsg" role="status" aria-live="polite"></p>
+        </form>
+      </section>
+
       <section class="card" aria-labelledby="trainsTitle">
         <div class="card-head"><h2 id="trainsTitle">Upcoming Trains</h2></div>
         <div class="toolbar">
@@ -96,16 +179,16 @@
         <div class="table-wrap"><table>
           <caption class="sr-only">Upcoming trains</caption>
           <thead><tr><th scope="col">Train ID</th><th scope="col">Line</th><th scope="col">Departure</th><th scope="col">Arrival</th><th scope="col">Delay</th><th scope="col">Status</th></tr></thead>
-          <tbody id="trainsBody"><tr><td class="empty" colspan="6">Loading trains...</td></tr></tbody>
+          <tbody id="trainsBody"><tr><td class="empty loading-state" colspan="6">Loading trains...</td></tr></tbody>
         </table></div>
         <p class="hint" id="trainsNote"></p>
       </section>
     </div>
   </main>
   <footer>© 2026 TrainTrack AI</footer>
+  <script src="/socket.io/socket.io.js"></script>
   <script src="/js/common.js"></script>
   <script src="/vendor/chart.umd.js"></script>
-  <script src="/socket.io/socket.io.js"></script>
   <script src="/js/passenger.js"></script>
 </body>
 </html>
