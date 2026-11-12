@@ -44,6 +44,23 @@ The Express application serves the HTML/CSS/JavaScript dashboards and JSON API. 
 
 Passwords are stored as bcrypt hashes. Successful sign-in uses an HTTP-only JWT cookie; public registration creates passenger accounts only. Controllers can manage schedules and disruptions, while administrative APIs and the admin dashboard require the admin role.
 
+## Deploy to Render
+
+The root-level [`render.yaml`](./render.yaml) defines two free Render web services from this repository:
+
+- `traintrack-ai-web` runs the Express app and serves the frontend and Socket.IO endpoint from the same origin.
+- `traintrack-ai-ml-api` runs the Flask API with Gunicorn from `ai/`, loading the tracked `model.cbm` and `model_meta.json` files.
+
+To deploy:
+
+1. Create a MongoDB Atlas cluster and database user. In Atlas Network Access, allow the outbound IP addresses listed for the Render services' region. Avoid `0.0.0.0/0` unless you knowingly accept access from all IP addresses.
+2. In Render, create a Blueprint from this repository and its `main` branch. Provide the Atlas connection URI as `MONGO_URI`, plus the initial admin email and a strong `ADMIN_PASSWORD`, when prompted. The URI should select the intended application database; URL-encode special characters in the database user's password. These values are Render secrets/settings, not repository files.
+3. Render generates `JWT_SECRET` and `ML_API_KEY`. The Blueprint passes the ML service's public HTTPS URL and API key to the Node service, and sets `PUBLIC_BASE_URL` to the Node service's public URL. The frontend and Socket.IO remain same-origin; no separate CORS origin is required.
+4. On the first successful Node deployment, `npm run seed` creates the initial admin account and inserts demo schedules and disruptions. The seed is idempotent and does not delete records. It does not import historical delay data.
+5. Wait for both `/health` checks to pass, then check the Node service's `/health?deep=true` and submit a prediction from the app. Free services can sleep when idle and cold-start on the next request; if CatBoost exceeds the free service's memory or runtime limits, upgrade the ML service to a suitable paid plan in Render.
+
+The Atlas cluster and Render services are separate hosted resources; this repository does not migrate or access a local MongoDB database. Historical-delay import (`npm run import:dataset`) is deliberately not part of the deploy hook because it replaces the target collection. Only run it when you intend to replace that collection's data. Email verification/reset delivery also requires configuring the optional email provider variables in the Render dashboard.
+
 ## API overview
 
 - `/api/auth/*`: registration, sign-in/out, current user, email verification, password reset and password change.

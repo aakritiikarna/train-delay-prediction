@@ -1,0 +1,55 @@
+services:
+  - type: web
+    name: traintrack-ai-web
+    runtime: node
+    plan: free
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /health
+    initialDeployHook: npm run seed
+    envVars:
+      - key: NODE_VERSION
+        value: 22.16.0
+      - key: NODE_ENV
+        value: production
+      - key: MONGO_URI
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: TRUST_PROXY
+        value: "1"
+      - key: CORS_ORIGIN
+        value: ""
+      - key: ML_SERVICE_URL
+        fromService:
+          type: web
+          name: traintrack-ai-ml-api
+          envVarKey: RENDER_EXTERNAL_URL
+      - key: ML_API_KEY
+        fromService:
+          type: web
+          name: traintrack-ai-ml-api
+          envVarKey: ML_API_KEY
+      - key: PUBLIC_BASE_URL
+        fromService:
+          type: web
+          name: traintrack-ai-web
+          envVarKey: RENDER_EXTERNAL_URL
+
+  - type: web
+    name: traintrack-ai-ml-api
+    runtime: python
+    rootDir: ai
+    plan: free
+    buildCommand: pip install --no-cache-dir -r requirements.txt
+    startCommand: gunicorn --bind 0.0.0.0:$PORT --workers 1 predict_api:app
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.13.4
+      - key: ML_API_KEY
+        generateValue: true
