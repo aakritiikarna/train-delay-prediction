@@ -19,7 +19,7 @@
     else loadActivity();
   }
 
-  const socket = typeof io === 'function' ? io() : null;
+  const socket = window.TT.connectSocket();
   if (socket) {
     socket.on('new-disruption', (d) => {
       const notice = `New disruption: ${d.trainId} on ${d.line}, ${d.cause} (${d.delay} min)`;
@@ -236,7 +236,8 @@
   $('#filterScheduleLine').addEventListener('change', loadSchedules);
 
   (window.TT.ready || Promise.resolve()).then(async () => {
-    try { me = await window.TT.currentUser(); } catch (err) { if (!handleAuthError(err)) fail(err); }
+    me = await window.TT.requirePageRole(['controller', 'admin']);
+    if (!me) return;
     await loadOperations();
     loadStats(); loadChart(); loadDisruptions(); loadSchedules(); loadActivity();
   });

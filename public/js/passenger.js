@@ -8,7 +8,7 @@
   let mapData = { trains: [], disruptions: [], lines: [] };
 
   // ---- live socket events -------------------------------------------------
-  const socket = window.TT.notificationSocket || (typeof io === 'function' ? io() : null);
+  const socket = window.TT.notificationSocket || window.TT.connectSocket();
   if (socket) window.TT.notificationSocket = socket;
   if (socket) {
     socket.on('new-disruption', (d) => {

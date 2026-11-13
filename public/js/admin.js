@@ -205,7 +205,8 @@
   $('#closeUserDetails').addEventListener('click', () => $('#userDetailsDialog').close());
 
   (window.TT.ready || Promise.resolve()).then(async () => {
-    me = await window.TT.currentUser();
+    me = await window.TT.requirePageRole(['admin']);
+    if (!me) return;
     loadUsers(); loadAudit(); loadMessages(); loadOverview(); loadHealth(); loadSecurityEvents(); loadNotificationOverview();
     window.TT.notificationSocket?.on('admin:notification-count', loadNotificationOverview);
   });

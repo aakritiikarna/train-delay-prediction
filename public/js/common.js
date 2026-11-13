@@ -3,6 +3,12 @@
   'use strict';
 
   const $ = (sel, root = document) => root.querySelector(sel);
+  const API_BASE_URL = String(window.TRAINTRACK_CONFIG?.apiBaseUrl || '').replace(/\/+$/, '');
+
+  function connectSocket() {
+    if (typeof window.io !== 'function') return null;
+    return window.io(API_BASE_URL || undefined, { withCredentials: Boolean(API_BASE_URL) });
+  }
 
   /** Tiny hyperscript: h('td', { className: 'x', onclick: fn }, 'text', childNode). Strings become text nodes. */
   function h(tag, props = {}, ...children) {
@@ -29,9 +35,10 @@
   async function api(path, { method = 'GET', body } = {}) {
     let res;
     try {
-      res = await fetch(path, {
+      const url = API_BASE_URL ? new URL(path, API_BASE_URL).toString() : path;
+      res = await fetch(url, {
         method,
-        credentials: 'same-origin',
+        credentials: API_BASE_URL ? 'include' : 'same-origin',
         headers: body !== undefined ? { 'Content-Type': 'application/json' } : undefined,
         body: body !== undefined ? JSON.stringify(body) : undefined,
       });
@@ -76,6 +83,19 @@
 
   async function currentUser() {
     try { return (await api('/api/auth/me')).user; } catch { return null; }
+  }
+
+  async function requirePageRole(roles) {
+    const user = await currentUser();
+    if (!user) {
+      location.href = `/login?next=${encodeURIComponent(location.pathname)}`;
+      return null;
+    }
+    if (!roles.includes(user.role)) {
+      location.href = '/passenger';
+      return null;
+    }
+    return user;
   }
 
   async function logout() {
@@ -169,7 +189,7 @@
     try { await load(); } catch (error) { $('#notificationList').replaceChildren(h('p', { className: 'muted' }, error.message)); }
 
     if (typeof window.io === 'function') {
-      const socket = window.TT.notificationSocket || window.io();
+      const socket = window.TT.notificationSocket || connectSocket();
       window.TT.notificationSocket = socket;
       socket.on('notification:new', (notification) => {
         renderCount(unreadCount + (notification.readAt ? 0 : 1));
@@ -187,6 +207,6 @@
     return false;
   }
 
-  window.TT = { $, h, api, ApiError, toast, debounce, downloadCSV, badge, emptyRow, initNav, handleAuthError, currentUser };
+  window.TT = { $, h, api, ApiError, toast, debounce, downloadCSV, badge, emptyRow, initNav, handleAuthError, currentUser, requirePageRole, connectSocket };
   window.TT.ready = initNav();
 })();

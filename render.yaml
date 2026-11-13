@@ -23,7 +23,7 @@ services:
       - key: TRUST_PROXY
         value: "1"
       - key: CORS_ORIGIN
-        value: ""
+        sync: false
       - key: ML_SERVICE_URL
         fromService:
           type: web
@@ -35,10 +35,7 @@ services:
           name: traintrack-ai-ml-api
           envVarKey: ML_API_KEY
       - key: PUBLIC_BASE_URL
-        fromService:
-          type: web
-          name: traintrack-ai-web
-          envVarKey: RENDER_EXTERNAL_URL
+        sync: false
 
   - type: web
     name: traintrack-ai-ml-api
